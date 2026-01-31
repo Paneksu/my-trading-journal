@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import calendar
 import os
 import json
@@ -8,7 +8,10 @@ import json
 # --- KONFIGURACJA POCZĄTKOWA ---
 st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
 
-# --- ZARZĄDZANIE STANEM (BEZ ZMIANY MOTYWU) ---
+# --- ZARZĄDZANIE MOTYWEM I STANEM ---
+if 'theme' not in st.session_state:
+    st.session_state.theme = "Dark"  # Domyślny
+
 if 'menu_nav' not in st.session_state:
     st.session_state.menu_nav = "📊 Dashboard"
 
@@ -16,51 +19,66 @@ if st.session_state.get('navigate_to_history'):
     st.session_state.menu_nav = "📜 Trades History"
     st.session_state.navigate_to_history = False
 
-# --- DEFINICJA KOLORÓW (TYLKO CIEMNY MOTYW) ---
-current_theme = {
-    "bg_app": "#0e0e12",
-    # GRADIENT DLA SIDEBARA
-    "bg_sidebar": "linear-gradient(180deg, #09090b 0%, #161625 100%)",
-    "bg_card": "#16161d",
-    "bg_metric": "linear-gradient(135deg, #16161d 0%, #1c1624 100%)",
-    "border": "#2d2d3a",
-    "text_primary": "#e0e0e0",
-    "text_secondary": "#aaaaaa",
-    "accent": "#ff007f",
-    "popover_bg": "#16161d",
-    "card_shadow": "0 2px 4px rgba(0,0,0,0.2)",
-    "input_bg": "#16161d",
-    "btn_bg": "#16161d",
-    "btn_text": "#e0e0e0",
-    "divider": "#2d2d3a"
+# --- DEFINICJA KOLORÓW DLA MOTYWÓW ---
+themes = {
+    "Dark": {
+        "bg_app": "#0e0e12",
+        "bg_sidebar": "#09090b",
+        "bg_card": "#16161d",
+        "bg_metric": "linear-gradient(135deg, #16161d 0%, #1c1624 100%)",
+        "border": "#2d2d3a",
+        "text_primary": "#e0e0e0",
+        "text_secondary": "#aaaaaa",
+        "accent": "#ff007f",
+        "popover_bg": "#16161d",
+        "card_shadow": "0 2px 4px rgba(0,0,0,0.2)",
+        "input_bg": "#16161d"
+    },
+    "Light": {
+        "bg_app": "#eef2f6",
+        "bg_sidebar": "#ffffff",
+        "bg_card": "#ffffff",
+        "bg_metric": "linear-gradient(135deg, #ffffff 0%, #e0c3fc 100%)",
+        "border": "#c7d2dd",
+        "text_primary": "#1a1f36",
+        "text_secondary": "#4f566b",
+        "accent": "#6c5ce7",
+        "popover_bg": "#ffffff",
+        "card_shadow": "0 4px 6px rgba(0,0,0,0.05)",
+        "input_bg": "#ffffff"
+    }
 }
+
+current_theme = themes[st.session_state.theme]
+
+# --- UI: PRZYCISK ZMIANY MOTYWU ---
+top_col1, top_col2 = st.columns([20, 1])
+with top_col2:
+    btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
+    if st.button(btn_icon, key="theme_toggle"):
+        st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
+        st.rerun()
 
 # --- INJECT CSS (DYNAMICZNY) ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-    html, body, [class*="css"] {{
-        font-family: 'Inter', sans-serif;
-    }}
-
     /* GLOBALNE TŁO */
     .stApp {{
         background-color: {current_theme['bg_app']};
         color: {current_theme['text_primary']};
     }}
 
-    /* SIDEBAR - Z GRADIENTEM */
+    /* SIDEBAR */
     [data-testid="stSidebar"] {{ 
-        background: {current_theme['bg_sidebar']}; 
+        background-color: {current_theme['bg_sidebar']}; 
         border-right: 1px solid {current_theme['border']}; 
     }}
 
-    /* METRYKI - Efekt karty z głębią */
+    /* METRYKI */
     .stMetric {{ 
         background: {current_theme['bg_metric']}; 
         padding: 20px; 
-        border-radius: 12px;
+        border-radius: 12px; 
         border: 1px solid {current_theme['border']}; 
         color: {current_theme['text_primary']};
         box-shadow: {current_theme['card_shadow']};
@@ -70,7 +88,7 @@ st.markdown(f"""
         color: {current_theme['text_primary']} !important;
     }}
 
-    /* TEXT ELEMENTS */
+    /* TEKSTY */
     h1, h2, h3, h4, p, span, div, label {{
         color: {current_theme['text_primary']};
     }}
@@ -79,33 +97,56 @@ st.markdown(f"""
         color: {current_theme['text_primary']} !important;
     }}
 
-    /* BUTTONS */
-    .stButton button {{
+    /* BUTTONS - Widgety */
+    div[data-testid="stButton"] button {{
         border: 1px solid {current_theme['border']};
-        background: {current_theme['btn_bg']};
-        color: {current_theme['btn_text']};
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: transform 0.1s ease-in-out;
+        background-color: {current_theme['bg_card']};
+        color: {current_theme['text_primary']};
+        font-weight: bold;
+        box-shadow: {current_theme['card_shadow']};
     }}
 
-    .stButton button:hover {{
-        transform: translateY(-1px);
-        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-        border-color: {current_theme['accent']};
-        color: {current_theme['btn_text']};
+    /* Przycisk motywu */
+    div[data-testid="column"] div[data-testid="stButton"] button {{
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
     }}
 
-    /* SEPARATORY */
-    hr {{
-        margin-top: 2em;
-        margin-bottom: 2em;
-        height: 1px;
-        background: {current_theme['divider']};
-        border: none;
-        opacity: 0.5;
+    /* --- FIX: PEŁNY EKRAN ZDJĘĆ --- */
+    [data-testid="stImage"] {{
+        overflow: visible !important;
+        position: relative !important;
+    }}
+
+    button[title="View fullscreen"] {{
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background-color: rgba(0, 0, 0, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        right: 0.5rem !important;
+        top: 0.5rem !important;
+        z-index: 999999 !important;
+        cursor: pointer !important;
+        border-radius: 8px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: background-color 0.2s !important;
+    }}
+
+    button[title="View fullscreen"]:hover {{
+        background-color: rgba(0, 0, 0, 0.9) !important;
+        border-color: {current_theme['accent']} !important;
+        transform: scale(1.05);
+    }}
+
+    button[title="View fullscreen"] svg {{
+        fill: white !important;
+        width: 1.2rem !important;
+        height: 1.2rem !important;
     }}
 
     /* --- CSS KALENDARZA --- */
@@ -113,7 +154,7 @@ st.markdown(f"""
         height: 120px;
         width: 100%;
         border-radius: 12px;
-        padding: 12px;
+        padding: 10px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -124,11 +165,23 @@ st.markdown(f"""
         box-shadow: {current_theme['card_shadow']};
     }}
 
+    .weekly-summary-title {{
+        font-size: 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.7;
+    }}
+    .weekly-summary-value {{
+        font-size: 1.2em;
+        font-weight: bold;
+    }}
+
     div[data-testid="stPopover"] > button {{
         height: 120px !important;
         width: 100% !important;
         background-color: transparent !important;
         border: none !important;
+        border-radius: 12px !important;
         color: transparent !important;
         margin-top: -120px !important;
         position: relative;
@@ -136,8 +189,8 @@ st.markdown(f"""
     }}
 
     div[data-testid="stPopover"] > button:hover {{
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid {current_theme['accent']} !important;
+        background-color: rgba(128, 128, 128, 0.05) !important;
+        border: 2px solid {current_theme['accent']} !important;
     }}
 
     div[data-testid="column"] {{ padding: 2px !important; }}
@@ -147,17 +200,15 @@ st.markdown(f"""
         background-color: {current_theme['popover_bg']} !important;
         color: {current_theme['text_primary']} !important;
         min-width: 500px !important;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-        border-radius: 12px !important;
     }}
 
     /* Highlight Box */
     .highlight-box {{ 
-        background-color: #1e1e26; 
-        padding: 15px; 
-        border-radius: 8px; 
-        border-left: 4px solid #00ff7f; 
-        margin-bottom: 15px; 
+        background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; 
+        padding: 10px; 
+        border-radius: 5px; 
+        border-left: 5px solid #00ff7f; 
+        margin-bottom: 10px; 
         color: {current_theme['text_primary']};
         border: 1px solid {current_theme['border']};
     }}
@@ -166,11 +217,11 @@ st.markdown(f"""
     .streamlit-expanderHeader {{
         background-color: {current_theme['bg_card']};
         color: {current_theme['text_primary']};
-        border-radius: 8px;
+        border-radius: 5px;
         border: 1px solid {current_theme['border']};
     }}
 
-    /* FORM INPUTS */
+    /* Inputs */
     div[data-baseweb="select"] > div, 
     div[data-baseweb="input"] > div,
     div[data-baseweb="base-input"],
@@ -178,7 +229,6 @@ st.markdown(f"""
         background-color: {current_theme['input_bg']} !important;
         color: {current_theme['text_primary']} !important;
         border-color: {current_theme['border']} !important;
-        border-radius: 8px !important;
     }}
 
     div[data-baseweb="select"] svg, 
@@ -215,12 +265,17 @@ def go_to_edit_mode(index):
     st.session_state.menu_nav = "📝 Daily Journal"
 
 
+# --- FUNKCJA PRZEJŚCIA DO HISTORII Z KALENDARZA ---
+def go_to_history_for_day(target_date):
+    st.session_state.history_filter_date = target_date
+    st.session_state.menu_nav = "📜 Trades History"
+
+
 # --- SIDEBAR MENU ---
 with st.sidebar:
     st.title("📘 NQPaneksu Journal")
-
     menu = st.radio("MAIN MENU", ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History"], key="menu_nav")
-    st.markdown("---")
+    st.divider()
     if st.button("🗑️ Delete Last Entry"):
         if all_trades:
             all_trades.pop()
@@ -229,7 +284,8 @@ with st.sidebar:
 
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
-    st.title("Dashboard Performance")
+    with top_col1:
+        st.title("Dashboard Performance")
 
     if all_trades:
         df = pd.DataFrame(all_trades)
@@ -246,7 +302,7 @@ if menu == "📊 Dashboard":
         c3.metric("Trades", total_valid)
         c4.metric("No Trade Days", len(df[df['direction'] == 'No Trade']))
 
-        st.markdown("---")
+        st.divider()
         st.subheader("Trading Calendar")
         col_y, col_m = st.columns(2)
         view_year = col_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year))
@@ -261,119 +317,232 @@ if menu == "📊 Dashboard":
                              unsafe_allow_html=True)
 
         for week in cal:
+            ref_day = next((d for d in week if d != 0), None)
+            weekly_pnl = 0.0
+            week_end_date = None
+
+            if ref_day:
+                ref_date = date(view_year, view_month, ref_day)
+                day_idx = week.index(ref_day)
+                week_start_date = ref_date - timedelta(days=day_idx)
+                week_end_date = week_start_date + timedelta(days=6)
+
+                week_trades = [
+                    t for t in all_trades
+                    if week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date
+                ]
+                weekly_pnl = sum(t['pnl'] for t in week_trades)
+
             cols = st.columns(7)
             for i, day in enumerate(week):
-                if day == 0:
-                    cols[i].write("")
-                else:
-                    curr_date = date(view_year, view_month, day)
-                    day_trades = [t for t in all_trades if t['date'] == str(curr_date)]
-                    day_pnl = sum([t['pnl'] for t in day_trades])
-                    has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                    valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
-
+                if i == 6:
+                    # LOGIKA NIEDZIELI / PODSUMOWANIA TYGODNIA
                     bg_color = current_theme['bg_card']
                     border_color = current_theme['border']
-                    text_day_color = current_theme['text_primary']
-                    text_pnl_color = current_theme['text_secondary']
+                    text_color = current_theme['text_primary']
+                    pnl_color = current_theme['text_secondary']
 
-                    pnl_display = ""
-                    trades_count_badge = ""
-
-                    if day_trades:
-                        if valid_trades_count > 0:
-                            badge_bg = "#2d2d3a"
-                            badge_txt = "#ccc"
-                            trades_count_badge = f"<span style='font-size: 0.8em; color: {badge_txt}; background: {badge_bg}; padding: 2px 8px; border-radius: 10px; font-weight: bold;'>{valid_trades_count}x</span>"
-
-                        if has_no_trade and day_pnl == 0:
-                            bg_color = "rgba(142, 142, 147, 0.15)"
-                            border_color = "#8e8e93"
-                            text_pnl_color = "#8e8e93"
-                            pnl_display = "⚪ No Trade"
-                        elif day_pnl > 0:
-                            bg_color = "rgba(0, 255, 127, 0.15)"
-                            border_color = "#00ff7f"
-                            text_pnl_color = "#00ff7f"
-                            pnl_display = f"🟢 +{day_pnl:.1f} $"
-                        elif day_pnl < 0:
-                            bg_color = "rgba(255, 69, 58, 0.15)"
-                            border_color = "#ff453a"
-                            text_pnl_color = "#ff453a"
-                            pnl_display = f"🔴 {day_pnl:.1f} $"
-                        else:
-                            bg_color = "rgba(142, 142, 147, 0.15)"
-                            border_color = "#8e8e93"
-                            text_pnl_color = "#8e8e93"
-                            pnl_display = f"⚪ {day_pnl:.1f} $"
+                    if weekly_pnl > 0:
+                        bg_color = "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"
+                        border_color = "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"
+                        pnl_color = "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"
+                    elif weekly_pnl < 0:
+                        bg_color = "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"
+                        border_color = "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"
+                        pnl_color = "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"
 
                     card_html = f"""
-                    <div class="day-card" style="background-color: {bg_color}; border-color: {border_color};">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="font-weight: bold; font-size: 1.1em; color: {text_day_color};">{day}</div>
-                            <div>{trades_count_badge}</div>
-                        </div>
-                        <div style="font-weight: bold; font-size: 1em; color: {text_pnl_color}; text-align: center;">{pnl_display}</div>
+                    <div class="day-card" style="background-color: {bg_color}; border-color: {border_color}; justify-content: center; align-items: center;">
+                        <div class="weekly-summary-title" style="color: {text_color};">Weekly PnL</div>
+                        <div class="weekly-summary-value" style="color: {pnl_color};">{weekly_pnl:+.1f} $</div>
                     </div>
                     """
                     cols[i].markdown(card_html, unsafe_allow_html=True)
 
+                    curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
+                        week_end_date if ref_day else None)
+
                     with cols[i].popover(label=" ", use_container_width=True):
+                        if curr_date_sunday:
+                            st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
+
+                            st.button(f"🔎 Go to History ({curr_date_sunday})",
+                                      key=f"gth_sun_{i}_{day}_{view_month}",
+                                      use_container_width=True,
+                                      on_click=go_to_history_for_day,
+                                      args=(curr_date_sunday,))
+
+                            st.divider()
+                            sunday_trades = [t for t in all_trades if t['date'] == str(curr_date_sunday)]
+
+                            if sunday_trades:
+                                for t in sunday_trades:
+                                    with st.container():
+                                        h1, h2 = st.columns([3, 1])
+                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
+                                        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
+                                        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
+                                                    unsafe_allow_html=True)
+                                        d1, d2, d3 = st.columns(3)
+                                        d1.caption(f"🕒 {t['time']}")
+                                        d2.caption(f"🔄 {t['trade_type']}")
+                                        d3.caption(f"🎯 {t['outcome']}")
+
+                                        if t.get('general_notes'): st.info(f"📝 **Note:** {t['general_notes']}")
+
+                                        cp1, cp2 = st.columns(2)
+                                        cp1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
+                                        if t.get('interfered') == 'Yes':
+                                            cp2.error(f"**⚠️ Interfered:** {t.get('interfered_how', '-')}")
+                                        else:
+                                            cp2.write("**🛡️ Interfered:** No")
+
+                                        st.markdown("---")
+                                        c_htf, c_ltf = st.columns(2)
+                                        with c_htf:
+                                            st.markdown("#### 🏛️ HTF Analysis")
+                                            # ADDED: Narrative & Key Points
+                                            st.markdown(f"**Narrative:** {t.get('htf_desc', '-')}")
+                                            st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
+                                            for l in t.get('htf_links', []):
+                                                if "http" in l: st.image(l.strip(), use_container_width=True)
+                                        with c_ltf:
+                                            st.markdown("#### ⚡ LTF Analysis")
+                                            # ADDED: Model & Key Points
+                                            st.markdown(f"**Model:** {t.get('ltf_desc', '-')}")
+                                            st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
+                                            for l in t.get('ltf_links', []):
+                                                if "http" in l: st.image(l.strip(), use_container_width=True)
+                                        st.divider()
+                            else:
+                                st.write("Brak tradów w tę niedzielę.")
+                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
+
+                else:
+                    # LOGIKA ZWYKŁEGO DNIA
+                    if day == 0:
+                        cols[i].write("")
+                    else:
+                        curr_date = date(view_year, view_month, day)
+                        day_trades = [t for t in all_trades if t['date'] == str(curr_date)]
+                        day_pnl = sum([t['pnl'] for t in day_trades])
+                        has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
+                        valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+
+                        bg_color = current_theme['bg_card']
+                        border_color = current_theme['border']
+                        text_day_color = current_theme['text_primary']
+                        text_pnl_color = current_theme['text_secondary']
+
+                        pnl_display = ""
+                        trades_count_badge = ""
+
                         if day_trades:
-                            st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                            st.markdown(f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $]")
-                            st.markdown("---")
-                            for t in day_trades:
-                                with st.container():
-                                    h1, h2 = st.columns([3, 1])
-                                    h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                    pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                    h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                unsafe_allow_html=True)
-                                    d1, d2, d3 = st.columns(3)
-                                    d1.caption(f"🕒 {t['time']}")
-                                    d2.caption(f"🔄 {t['trade_type']}")
-                                    d3.caption(f"🎯 {t['outcome']}")
+                            if valid_trades_count > 0:
+                                badge_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
+                                badge_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
+                                trades_count_badge = f"<span style='font-size: 0.8em; color: {badge_txt}; background: {badge_bg}; padding: 2px 6px; border-radius: 4px;'>{valid_trades_count}x</span>"
 
-                                    if t.get('general_notes'): st.info(f"📝 **Note:** {t['general_notes']}")
+                            if has_no_trade and day_pnl == 0:
+                                bg_color = "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"
+                                border_color = "#8e8e93"
+                                text_pnl_color = "#8e8e93"
+                                pnl_display = "⚪ No Trade"
+                            elif day_pnl > 0:
+                                bg_color = "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"
+                                border_color = "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"
+                                text_pnl_color = "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"
+                                pnl_display = f"🟢 +{day_pnl:.1f} $"
+                            elif day_pnl < 0:
+                                bg_color = "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"
+                                border_color = "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"
+                                text_pnl_color = "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"
+                                pnl_display = f"🔴 {day_pnl:.1f} $"
+                            else:
+                                bg_color = "rgba(142, 142, 147, 0.15)"
+                                border_color = "#8e8e93"
+                                text_pnl_color = "#8e8e93"
+                                pnl_display = f"⚪ {day_pnl:.1f} $"
 
-                                    cp1, cp2 = st.columns(2)
-                                    cp1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
-                                    if t.get('interfered') == 'Yes':
-                                        cp2.error(f"**⚠️ Interfered:** {t.get('interfered_how', '-')}")
-                                    else:
-                                        cp2.write("**🛡️ Interfered:** No")
+                        card_html = f"""
+                        <div class="day-card" style="background-color: {bg_color}; border-color: {border_color};">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="font-weight: bold; font-size: 1.1em; color: {text_day_color};">{day}</div>
+                                <div>{trades_count_badge}</div>
+                            </div>
+                            <div style="font-weight: bold; font-size: 1em; color: {text_pnl_color}; text-align: center;">{pnl_display}</div>
+                        </div>
+                        """
+                        cols[i].markdown(card_html, unsafe_allow_html=True)
 
-                                    st.markdown("---")
-                                    c_htf, c_ltf = st.columns(2)
-                                    with c_htf:
-                                        st.markdown("#### 🏛️ HTF Analysis")
-                                        st.success(f"**Narrative:** {t.get('htf_desc', '-')}")
-                                        st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
-                                        for l in t.get('htf_links', []):
-                                            if "http" in l: st.image(l.strip(), use_container_width=True)
-                                    with c_ltf:
-                                        st.markdown("#### ⚡ LTF Analysis")
-                                        st.warning(f"**Model:** {t.get('ltf_desc', '-')}")
-                                        st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
-                                        for l in t.get('ltf_links', []):
-                                            if "http" in l: st.image(l.strip(), use_container_width=True)
-                                    st.markdown("---")
-                                    st.caption("✅ Checklist Check:")
-                                    cl_cols = st.columns(6)
-                                    checklist_items = ["Cond.", "HTF", "LTF", "Liq.", "Exec.", "Mental"]
-                                    for idx, val in enumerate(t.get('checklist', [])):
-                                        cl_cols[idx].checkbox(checklist_items[idx], value=val, disabled=True,
-                                                              key=f"d_{curr_date}_{t['time']}_{idx}_{i}")
-                                    st.markdown("---")
-                        else:
-                            st.write("Brak wpisów w dzienniku dla tego dnia.")
+                        with cols[i].popover(label=" ", use_container_width=True):
+                            if day_trades:
+                                st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
+
+                                st.button(f"🔎 Go to History ({curr_date})",
+                                          key=f"gth_{curr_date}",
+                                          use_container_width=True,
+                                          on_click=go_to_history_for_day,
+                                          args=(curr_date,))
+
+                                st.markdown(
+                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $]")
+                                st.divider()
+                                for t in day_trades:
+                                    with st.container():
+                                        h1, h2 = st.columns([3, 1])
+                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
+                                        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
+                                        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
+                                                    unsafe_allow_html=True)
+                                        d1, d2, d3 = st.columns(3)
+                                        d1.caption(f"🕒 {t['time']}")
+                                        d2.caption(f"🔄 {t['trade_type']}")
+                                        d3.caption(f"🎯 {t['outcome']}")
+
+                                        if t.get('general_notes'): st.info(f"📝 **Note:** {t['general_notes']}")
+
+                                        cp1, cp2 = st.columns(2)
+                                        cp1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
+                                        if t.get('interfered') == 'Yes':
+                                            cp2.error(f"**⚠️ Interfered:** {t.get('interfered_how', '-')}")
+                                        else:
+                                            cp2.write("**🛡️ Interfered:** No")
+
+                                        st.markdown("---")
+                                        c_htf, c_ltf = st.columns(2)
+                                        with c_htf:
+                                            st.markdown("#### 🏛️ HTF Analysis")
+                                            # ADDED: Narrative & Key Points
+                                            st.markdown(f"**Narrative:** {t.get('htf_desc', '-')}")
+                                            st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
+                                            for l in t.get('htf_links', []):
+                                                if "http" in l: st.image(l.strip(), use_container_width=True)
+                                        with c_ltf:
+                                            st.markdown("#### ⚡ LTF Analysis")
+                                            # ADDED: Model & Key Points
+                                            st.markdown(f"**Model:** {t.get('ltf_desc', '-')}")
+                                            st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
+                                            for l in t.get('ltf_links', []):
+                                                if "http" in l: st.image(l.strip(), use_container_width=True)
+                                        st.markdown("---")
+                                        st.caption("✅ Checklist Check:")
+                                        cl_cols = st.columns(6)
+                                        checklist_items = ["Cond.", "HTF", "LTF", "Liq.", "Exec.", "Mental"]
+                                        for idx, val in enumerate(t.get('checklist', [])):
+                                            cl_cols[idx].checkbox(checklist_items[idx], value=val, disabled=True,
+                                                                  key=f"d_{curr_date}_{t['time']}_{idx}_{i}")
+                                        st.divider()
+                            else:
+                                st.write("Brak wpisów w dzienniku dla tego dnia.")
     else:
         st.info("Brak danych.")
 
 # --- DAILY JOURNAL ---
 elif menu == "📝 Daily Journal":
-    st.title("Daily Trade Entry")
+    # (RESZTA BEZ ZMIAN)
+    with top_col1:
+        st.title("Daily Trade Entry")
 
     if 'editing_index' not in st.session_state: st.session_state.editing_index = None
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None else None
@@ -390,7 +559,7 @@ elif menu == "📝 Daily Journal":
                                      curr.get('direction', 'Long')))
         exec_time = st.text_input("Time", value="" if not curr else curr['time'])
 
-        st.markdown("---")
+        st.write("---")
         htf_links = st.text_area("HTF Links", value="" if not curr else "\n".join(curr['htf_links']))
         htf_narr = st.text_area("HTF Narrative", value="" if not curr else curr['htf_desc'])
         htf_kp = st.text_area("HTF Key Points", value="" if not curr else curr['htf_keypoints'])
@@ -407,7 +576,7 @@ elif menu == "📝 Daily Journal":
         ltf_kp = st.text_area("LTF Key Points", value="" if not curr else curr['ltf_keypoints'])
         ltf_desc = st.text_area("LTF Model", value="" if not curr else curr['ltf_desc'])
 
-        st.markdown("---")
+        st.write("---")
         gen_notes = st.text_area("General Notes", value="" if not curr else curr.get('general_notes', ""))
         mood = st.select_slider("Mood", options=["Stressed", "Neutral", "Euphoric"],
                                 value="Neutral" if not curr else curr['mood'])
@@ -415,7 +584,7 @@ elif menu == "📝 Daily Journal":
         inter_how = st.text_input("How?",
                                   value="" if not curr else curr['interfered_how']) if interfere == "Yes" else ""
 
-    st.markdown("---")
+    st.divider()
     c1, c2 = st.columns(2)
     outcome = c1.selectbox("Outcome", ["Win", "Loss", "Breakeven", "No Trade"],
                            index=0 if not curr else ["Win", "Loss", "Breakeven", "No Trade"].index(curr['outcome']))
@@ -452,21 +621,37 @@ elif menu == "📝 Daily Journal":
 
 # --- TRADES HISTORY ---
 elif menu == "📜 Trades History":
-    st.title("Trade History")
+    with top_col1:
+        st.title("Trade History")
+
+    # --- PRZYCISK POWROTU (JEŚLI FILTRUJEMY PRZEZ DATĘ Z KALENDARZA) ---
+    preset_date = st.session_state.get('history_filter_date')
+    if preset_date:
+        if st.button("⬅️ Back to Dashboard", use_container_width=True):
+            del st.session_state.history_filter_date
+            st.session_state.menu_nav = "📊 Dashboard"
+            st.rerun()
 
     if all_trades:
         df = pd.DataFrame(all_trades)
         df['date'] = pd.to_datetime(df['date'])
         df['original_index'] = df.index
 
-        with st.expander("🔍 Filter & Sort Options", expanded=False):
+        with st.expander("🔍 Filter & Sort Options", expanded=bool(preset_date)):
             c_f1, c_f2, c_f3, c_f4 = st.columns(4)
             sel_asset = c_f1.multiselect("Asset", options=df['asset'].unique())
             sel_outcome = c_f2.multiselect("Outcome", options=df['outcome'].unique())
             sel_direction = c_f3.multiselect("Direction", options=df['direction'].unique())
+
+            # USTAWIANIE DATY NA PODSTAWIE FILTRA Z KALENDARZA
             min_date = df['date'].min().date()
             max_date = df['date'].max().date()
-            sel_date = c_f4.date_input("Date Range", value=(min_date, max_date))
+
+            default_val = (min_date, max_date)
+            if preset_date:
+                default_val = (preset_date, preset_date)
+
+            sel_date = c_f4.date_input("Date Range", value=default_val)
             st.markdown("---")
             sort_opt = st.selectbox("Sort By",
                                     ["Date (Newest)", "Date (Oldest)", "PnL (High -> Low)", "PnL (Low -> High)"])
@@ -490,7 +675,7 @@ elif menu == "📜 Trades History":
         elif sort_opt == "PnL (Low -> High)":
             df = df.sort_values(by='pnl', ascending=True)
 
-        st.markdown("---")
+        st.divider()
         st.write(f"Showing **{len(df)}** trades.")
 
         for _, row in df.iterrows():
@@ -508,7 +693,7 @@ elif menu == "📜 Trades History":
                     ch2.markdown(f"**⚠️ Interfered:** :red[{t.get('interfered_how', '-')}]")
                 else:
                     ch2.write("**🛡️ Interfered:** No")
-                st.markdown("---")
+                st.write("---")
 
                 ca, cb = st.columns(2)
                 with ca:
