@@ -12,6 +12,7 @@ st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
 if 'theme' not in st.session_state:
     st.session_state.theme = "Dark"
 
+# Inicjalizacja menu
 if 'menu_nav' not in st.session_state:
     st.session_state.menu_nav = "📊 Dashboard"
 
@@ -91,63 +92,69 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- GOOGLE SHEETS CONNECTION ---
-# Inicjalizacja połączenia
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 
-def load_data():
+def load_data_from_gsheets():
+    """Pobiera dane z Google Sheets i konwertuje na listę słowników."""
     try:
-        # Pobieramy dane z arkusza jako DataFrame
-        df = conn.read(ttl=0)  # ttl=0 wyłącza cache, żeby widzieć zmiany od razu
+        # Pobieramy dane. ttl=0 wymusza odświeżenie tylko przy jawnym wywołaniu tej funkcji
+        df = conn.read(ttl=0)
+
+        # FIX: Wypełniamy puste komórki (NaN) pustymi stringami, żeby nie psuły logiki
+        df = df.fillna("")
+
         if df.empty:
             return []
 
-        # Konwersja DataFrame na listę słowników (format używany w Twoim kodzie)
         data = df.to_dict(orient="records")
+        processed_data = []
 
-        # Odtwarzanie list i typów (Google Sheets spłaszcza wszystko do stringów/liczb)
         for row in data:
-            # Listy linków (zapisane jako string oddzielony przecinkami lub nowymi liniami)
-            if isinstance(row.get('htf_links'), str):
-                row['htf_links'] = row['htf_links'].split('|||') if row['htf_links'] else []
-            elif pd.isna(row.get('htf_links')):
+            # Konwersja typów danych z formatu arkusza na format aplikacji
+            if isinstance(row.get('htf_links'), str) and row['htf_links']:
+                row['htf_links'] = row['htf_links'].split('|||')
+            else:
                 row['htf_links'] = []
 
-            if isinstance(row.get('ltf_links'), str):
-                row['ltf_links'] = row['ltf_links'].split('|||') if row['ltf_links'] else []
-            elif pd.isna(row.get('ltf_links')):
+            if isinstance(row.get('ltf_links'), str) and row['ltf_links']:
+                row['ltf_links'] = row['ltf_links'].split('|||')
+            else:
                 row['ltf_links'] = []
 
-            # Checklist (zapisany jako JSON string)
-            if isinstance(row.get('checklist'), str):
+            # Checklist (JSON)
+            if isinstance(row.get('checklist'), str) and row['checklist']:
                 try:
                     row['checklist'] = json.loads(row['checklist'])
                 except:
                     row['checklist'] = [False] * 6
-            elif pd.isna(row.get('checklist')):
+            else:
                 row['checklist'] = [False] * 6
 
-            # Upewnienie się że PnL to float
-            row['pnl'] = float(row['pnl']) if row.get('pnl') else 0.0
+            # PnL na float
+            try:
+                # Zamiana przecinka na kropkę (bezpiecznik) i konwersja
+                pnl_str = str(row.get('pnl', 0)).replace(',', '.')
+                row['pnl'] = float(pnl_str) if pnl_str else 0.0
+            except:
+                row['pnl'] = 0.0
 
-            # Daty i stringi (usuwanie NaN)
-            for key in row:
-                if pd.isna(row[key]):
-                    row[key] = ""
-                else:
-                    if key == 'date':
-                        row[key] = str(row[key])
+            # Data na string
+            if row.get('date'):
+                row['date'] = str(row['date'])
 
-        return data
+            processed_data.append(row)
+
+        return processed_data
     except Exception as e:
-        # Jeśli arkusz jest pusty lub nie istnieje, zwracamy pustą listę
-        # st.error(f"Błąd ładowania danych: {e}") # Do debugowania
+        st.error(f"Błąd połączenia z bazą danych: {e}")
         return []
 
 
 def save_all_data(data):
+    """Zapisuje całą listę słowników do Google Sheets."""
     if not data:
-        # Jeśli lista jest pusta, tworzymy pusty DF z kolumnami
+        # Jeśli lista pusta, zapisujemy same nagłówki
         df = pd.DataFrame(
             columns=['date', 'asset', 'direction', 'time', 'trade_type', 'outcome', 'pnl', 'general_notes', 'mood',
                      'interfered', 'interfered_how', 'htf_desc', 'htf_keypoints', 'htf_links', 'ltf_desc',
@@ -155,14 +162,12 @@ def save_all_data(data):
         conn.update(data=df)
         return
 
-    # Przygotowanie kopii danych do zapisu (konwersja list na stringi)
     data_to_save = []
     for row in data:
         new_row = row.copy()
-        # Łączymy linki w jeden string z separatorem |||
+        # Konwersja list na stringi dla Excela
         new_row['htf_links'] = "|||".join(row['htf_links'])
         new_row['ltf_links'] = "|||".join(row['ltf_links'])
-        # Checklistę zapisujemy jako JSON string
         new_row['checklist'] = json.dumps(row['checklist'])
         data_to_save.append(new_row)
 
@@ -170,19 +175,38 @@ def save_all_data(data):
     conn.update(data=df)
 
 
-all_trades = load_data()
+# --- ZARZĄDZANIE STANEM DANYCH (FIX LAGÓW) ---
+# Ładujemy dane tylko jeśli nie ma ich w sesji
+if 'all_trades' not in st.session_state:
+    with st.spinner("Ładowanie bazy danych..."):
+        st.session_state.all_trades = load_data_from_gsheets()
+
+# Używamy zmiennej lokalnej dla wygody, ale operujemy na session_state
+all_trades = st.session_state.all_trades
 
 
-# --- FUNKCJA CALLBACK DLA EDYCJI ---
+# --- FUNKCJE CALLBACK ---
 def go_to_edit_mode(index):
     st.session_state.editing_index = index
     st.session_state.menu_nav = "📝 Daily Journal"
 
 
-# --- FUNKCJA PRZEJŚCIA DO HISTORII Z KALENDARZA ---
 def go_to_history_for_day(target_date):
-    st.session_state.history_filter_date = target_date
+    if isinstance(target_date, str):
+        try:
+            target_date_obj = datetime.strptime(target_date, '%Y-%m-%d').date()
+        except:
+            target_date_obj = date.today()
+    else:
+        target_date_obj = target_date
+    st.session_state.history_filter_date = target_date_obj
     st.session_state.menu_nav = "📜 Trades History"
+
+
+def back_to_dashboard():
+    if 'history_filter_date' in st.session_state:
+        del st.session_state.history_filter_date
+    st.session_state.menu_nav = "📊 Dashboard"
 
 
 # --- SIDEBAR MENU ---
@@ -191,9 +215,9 @@ with st.sidebar:
     menu = st.radio("MAIN MENU", ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History"], key="menu_nav")
     st.divider()
     if st.button("🗑️ Delete Last Entry"):
-        if all_trades:
-            all_trades.pop()
-            save_all_data(all_trades)
+        if st.session_state.all_trades:
+            st.session_state.all_trades.pop()  # Usuwamy z pamięci
+            save_all_data(st.session_state.all_trades)  # Zapisujemy zmianę w chmurze
             st.rerun()
 
 # --- DASHBOARD ---
@@ -234,61 +258,44 @@ if menu == "📊 Dashboard":
             ref_day = next((d for d in week if d != 0), None)
             weekly_pnl = 0.0
             week_end_date = None
-
             if ref_day:
                 ref_date = date(view_year, view_month, ref_day)
                 day_idx = week.index(ref_day)
                 week_start_date = ref_date - timedelta(days=day_idx)
                 week_end_date = week_start_date + timedelta(days=6)
-
-                week_trades = [
-                    t for t in all_trades
-                    if week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date
-                ]
+                week_trades = [t for t in all_trades if
+                               week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
                 weekly_pnl = sum(t['pnl'] for t in week_trades)
 
             cols = st.columns(7)
             for i, day in enumerate(week):
-                if i == 6:
-                    # LOGIKA NIEDZIELI / PODSUMOWANIA TYGODNIA
-                    bg_color = current_theme['bg_card']
-                    border_color = current_theme['border']
-                    text_color = current_theme['text_primary']
-                    pnl_color = current_theme['text_secondary']
-
+                if i == 6:  # Niedziela
+                    bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
+                        'text_primary'], current_theme['text_secondary']
                     if weekly_pnl > 0:
-                        bg_color = "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"
-                        border_color = "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"
-                        pnl_color = "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"
+                        bg_c, bor_c, pnl_c = (
+                            "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                            "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
+                            "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
                     elif weekly_pnl < 0:
-                        bg_color = "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"
-                        border_color = "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"
-                        pnl_color = "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"
+                        bg_c, bor_c, pnl_c = (
+                            "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                            "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
+                            "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
 
-                    card_html = f"""
-                    <div class="day-card" style="background-color: {bg_color}; border-color: {border_color}; justify-content: center; align-items: center;">
-                        <div class="weekly-summary-title" style="color: {text_color};">Weekly PnL</div>
-                        <div class="weekly-summary-value" style="color: {pnl_color};">{weekly_pnl:+.1f} $</div>
-                    </div>
-                    """
+                    card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c};">{weekly_pnl:+.1f} $</div></div>"""
                     cols[i].markdown(card_html, unsafe_allow_html=True)
 
                     curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                         week_end_date if ref_day else None)
-
                     with cols[i].popover(label=" ", use_container_width=True):
                         if curr_date_sunday:
                             st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
-
-                            st.button(f"🔎 Go to History ({curr_date_sunday})",
-                                      key=f"gth_sun_{i}_{day}_{view_month}",
-                                      use_container_width=True,
-                                      on_click=go_to_history_for_day,
+                            st.button(f"🔎 Go to History ({curr_date_sunday})", key=f"gth_sun_{i}_{day}_{view_month}",
+                                      use_container_width=True, on_click=go_to_history_for_day,
                                       args=(curr_date_sunday,))
-
                             st.divider()
                             sunday_trades = [t for t in all_trades if t['date'] == str(curr_date_sunday)]
-
                             if sunday_trades:
                                 for t in sunday_trades:
                                     with st.container():
@@ -297,38 +304,23 @@ if menu == "📊 Dashboard":
                                         pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
                                         h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
                                                     unsafe_allow_html=True)
-                                        d1, d2, d3 = st.columns(3)
-                                        d1.caption(f"🕒 {t['time']}")
-                                        d2.caption(f"🔄 {t['trade_type']}")
-                                        d3.caption(f"🎯 {t['outcome']}")
-                                        if t.get('general_notes'): st.info(f"📝 **Note:** {t['general_notes']}")
-
-                                        cp1, cp2 = st.columns(2)
-                                        cp1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
-                                        if t.get('interfered') == 'Yes':
-                                            cp2.error(f"**⚠️ Interfered:** {t.get('interfered_how', '-')}")
-                                        else:
-                                            cp2.write("**🛡️ Interfered:** No")
-
+                                        st.caption(f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']}")
+                                        if t.get('general_notes'): st.info(f"📝 {t['general_notes']}")
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
-                                            st.markdown("#### 🏛️ HTF Analysis")
-                                            st.markdown(f"**Narrative:** {t.get('htf_desc', '-')}")
-                                            st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
+                                            st.markdown(
+                                                f"#### 🏛️ HTF Analysis\n**Narrative:** {t.get('htf_desc', '-')}\n**Key Points:** {t.get('htf_keypoints', '-')}")
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
-                                            st.markdown("#### ⚡ LTF Analysis")
-                                            st.markdown(f"**Model:** {t.get('ltf_desc', '-')}")
-                                            st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
+                                            st.markdown(
+                                                f"#### ⚡ LTF Analysis\n**Model:** {t.get('ltf_desc', '-')}\n**Key Points:** {t.get('ltf_keypoints', '-')}")
                                             for l in t.get('ltf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         st.divider()
                             else:
-                                st.write("Brak tradów w tę niedzielę.")
-                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
-
+                                st.write("Brak tradów."); st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
                 else:
                     if day == 0:
                         cols[i].write("")
@@ -337,64 +329,40 @@ if menu == "📊 Dashboard":
                         day_trades = [t for t in all_trades if t['date'] == str(curr_date)]
                         day_pnl = sum([t['pnl'] for t in day_trades])
                         has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                        valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+                        valid_trades = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
-                        bg_color = current_theme['bg_card']
-                        border_color = current_theme['border']
-                        text_day_color = current_theme['text_primary']
-                        text_pnl_color = current_theme['text_secondary']
-
-                        pnl_display = ""
-                        trades_count_badge = ""
-
+                        bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
+                            'text_primary'], current_theme['text_secondary']
+                        pnl_disp, badge = "", ""
                         if day_trades:
-                            if valid_trades_count > 0:
-                                badge_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
-                                badge_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                trades_count_badge = f"<span style='font-size: 0.8em; color: {badge_txt}; background: {badge_bg}; padding: 2px 6px; border-radius: 4px;'>{valid_trades_count}x</span>"
-
+                            if valid_trades > 0:
+                                b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
+                                b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
+                                badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades}x</span>"
                             if has_no_trade and day_pnl == 0:
-                                bg_color = "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"
-                                border_color = "#8e8e93"
-                                text_pnl_color = "#8e8e93"
-                                pnl_display = "⚪ No Trade"
+                                bg_c, bor_c, pnl_c, pnl_disp = (
+                                    "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
                             elif day_pnl > 0:
-                                bg_color = "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"
-                                border_color = "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"
-                                text_pnl_color = "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"
-                                pnl_display = f"🟢 +{day_pnl:.1f} $"
+                                bg_c, bor_c, pnl_c, pnl_disp = (
+                                    "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                    "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
+                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $"
                             elif day_pnl < 0:
-                                bg_color = "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"
-                                border_color = "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"
-                                text_pnl_color = "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"
-                                pnl_display = f"🔴 {day_pnl:.1f} $"
+                                bg_c, bor_c, pnl_c, pnl_disp = (
+                                    "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                    "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
+                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $"
                             else:
-                                bg_color = "rgba(142, 142, 147, 0.15)"
-                                border_color = "#8e8e93"
-                                text_pnl_color = "#8e8e93"
-                                pnl_display = f"⚪ {day_pnl:.1f} $"
+                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $"
 
-                        card_html = f"""
-                        <div class="day-card" style="background-color: {bg_color}; border-color: {border_color};">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div style="font-weight: bold; font-size: 1.1em; color: {text_day_color};">{day}</div>
-                                <div>{trades_count_badge}</div>
-                            </div>
-                            <div style="font-weight: bold; font-size: 1em; color: {text_pnl_color}; text-align: center;">{pnl_display}</div>
-                        </div>
-                        """
+                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;">{pnl_disp}</div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         with cols[i].popover(label=" ", use_container_width=True):
                             if day_trades:
                                 st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-
-                                st.button(f"🔎 Go to History ({curr_date})",
-                                          key=f"gth_{curr_date}",
-                                          use_container_width=True,
-                                          on_click=go_to_history_for_day,
-                                          args=(curr_date,))
-
+                                st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
+                                          use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
                                 st.markdown(
                                     f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $]")
                                 st.divider()
@@ -405,44 +373,29 @@ if menu == "📊 Dashboard":
                                         pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
                                         h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
                                                     unsafe_allow_html=True)
-                                        d1, d2, d3 = st.columns(3)
-                                        d1.caption(f"🕒 {t['time']}")
-                                        d2.caption(f"🔄 {t['trade_type']}")
-                                        d3.caption(f"🎯 {t['outcome']}")
-
-                                        if t.get('general_notes'): st.info(f"📝 **Note:** {t['general_notes']}")
-
+                                        st.caption(f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']}")
+                                        if t.get('general_notes'): st.info(f"📝 {t['general_notes']}")
                                         cp1, cp2 = st.columns(2)
                                         cp1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
                                         if t.get('interfered') == 'Yes':
                                             cp2.error(f"**⚠️ Interfered:** {t.get('interfered_how', '-')}")
                                         else:
                                             cp2.write("**🛡️ Interfered:** No")
-
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
-                                            st.markdown("#### 🏛️ HTF Analysis")
-                                            st.markdown(f"**Narrative:** {t.get('htf_desc', '-')}")
-                                            st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
+                                            st.markdown(
+                                                f"#### 🏛️ HTF Analysis\n**Narrative:** {t.get('htf_desc', '-')}\n**Key Points:** {t.get('htf_keypoints', '-')}")
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
-                                            st.markdown("#### ⚡ LTF Analysis")
-                                            st.markdown(f"**Model:** {t.get('ltf_desc', '-')}")
-                                            st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
+                                            st.markdown(
+                                                f"#### ⚡ LTF Analysis\n**Model:** {t.get('ltf_desc', '-')}\n**Key Points:** {t.get('ltf_keypoints', '-')}")
                                             for l in t.get('ltf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        st.markdown("---")
-                                        st.caption("✅ Checklist Check:")
-                                        cl_cols = st.columns(6)
-                                        checklist_items = ["Cond.", "HTF", "LTF", "Liq.", "Exec.", "Mental"]
-                                        for idx, val in enumerate(t.get('checklist', [])):
-                                            cl_cols[idx].checkbox(checklist_items[idx], value=val, disabled=True,
-                                                                  key=f"d_{curr_date}_{t['time']}_{idx}_{i}")
                                         st.divider()
                             else:
-                                st.write("Brak wpisów w dzienniku dla tego dnia.")
+                                st.write("Brak wpisów.")
     else:
         st.info("Brak danych.")
 
@@ -450,7 +403,6 @@ if menu == "📊 Dashboard":
 elif menu == "📝 Daily Journal":
     with top_col1:
         st.title("Daily Trade Entry")
-
     if 'editing_index' not in st.session_state: st.session_state.editing_index = None
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None else None
 
@@ -465,7 +417,6 @@ elif menu == "📝 Daily Journal":
                                  index=0 if not curr else ["Long", "Short", "No Trade"].index(
                                      curr.get('direction', 'Long')))
         exec_time = st.text_input("Time", value="" if not curr else curr['time'])
-
         st.write("---")
         htf_links = st.text_area("HTF Links", value="" if not curr else "\n".join(curr['htf_links']))
         htf_narr = st.text_area("HTF Narrative", value="" if not curr else curr['htf_desc'])
@@ -473,16 +424,12 @@ elif menu == "📝 Daily Journal":
 
     with col2:
         st.subheader("Execution")
-        trade_types_list = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
-        default_index = 0
-        if curr and curr['trade_type'] in trade_types_list:
-            default_index = trade_types_list.index(curr['trade_type'])
-        trade_type = st.selectbox("Type", trade_types_list, index=default_index)
-
+        tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
+        trade_type = st.selectbox("Type", tt_l, index=0 if not curr or curr['trade_type'] not in tt_l else tt_l.index(
+            curr['trade_type']))
         ltf_links = st.text_area("LTF Links", value="" if not curr else "\n".join(curr['ltf_links']))
         ltf_kp = st.text_area("LTF Key Points", value="" if not curr else curr['ltf_keypoints'])
         ltf_desc = st.text_area("LTF Model", value="" if not curr else curr['ltf_desc'])
-
         st.write("---")
         gen_notes = st.text_area("General Notes", value="" if not curr else curr.get('general_notes', ""))
         mood = st.select_slider("Mood", options=["Stressed", "Neutral", "Euphoric"],
@@ -516,12 +463,15 @@ elif menu == "📝 Daily Journal":
             "general_notes": gen_notes, "mood": mood, "interfered": interfere, "interfered_how": inter_how,
             "checklist": [ch1, ch2, ch3, ch4, ch5, ch6], "outcome": outcome, "pnl": pnl_val
         }
+
+        # --- AKTUALIZACJA DANYCH (FIX NADPISYWANIA) ---
         if st.session_state.editing_index is not None:
-            all_trades[st.session_state.editing_index] = new_data
+            st.session_state.all_trades[st.session_state.editing_index] = new_data
             st.session_state.editing_index = None
         else:
-            all_trades.append(new_data)
-        save_all_data(all_trades)
+            st.session_state.all_trades.append(new_data)
+
+        save_all_data(st.session_state.all_trades)
         st.success("Zapisano!")
         st.session_state.navigate_to_history = True
         st.rerun()
@@ -531,13 +481,9 @@ elif menu == "📜 Trades History":
     with top_col1:
         st.title("Trade History")
 
-    # --- PRZYCISK POWROTU (JEŚLI FILTRUJEMY PRZEZ DATĘ Z KALENDARZA) ---
     preset_date = st.session_state.get('history_filter_date')
     if preset_date:
-        if st.button("⬅️ Back to Dashboard", use_container_width=True):
-            del st.session_state.history_filter_date
-            st.session_state.menu_nav = "📊 Dashboard"
-            st.rerun()
+        st.button("⬅️ Back to Dashboard", use_container_width=True, on_click=back_to_dashboard)
 
     if all_trades:
         df = pd.DataFrame(all_trades)
@@ -550,14 +496,8 @@ elif menu == "📜 Trades History":
             sel_outcome = c_f2.multiselect("Outcome", options=df['outcome'].unique())
             sel_direction = c_f3.multiselect("Direction", options=df['direction'].unique())
 
-            # USTAWIANIE DATY NA PODSTAWIE FILTRA Z KALENDARZA
-            min_date = df['date'].min().date()
-            max_date = df['date'].max().date()
-
-            default_val = (min_date, max_date)
-            if preset_date:
-                default_val = (preset_date, preset_date)
-
+            min_date, max_date = df['date'].min().date(), df['date'].max().date()
+            default_val = (preset_date, preset_date) if preset_date else (min_date, max_date)
             sel_date = c_f4.date_input("Date Range", value=default_val)
             st.markdown("---")
             sort_opt = st.selectbox("Sort By",
@@ -568,10 +508,11 @@ elif menu == "📜 Trades History":
         if sel_direction: df = df[df['direction'].isin(sel_direction)]
         if isinstance(sel_date, tuple):
             if len(sel_date) == 2:
-                start_d, end_d = sel_date
-                df = df[(df['date'].dt.date >= start_d) & (df['date'].dt.date <= end_d)]
+                df = df[(df['date'].dt.date >= sel_date[0]) & (df['date'].dt.date <= sel_date[1])]
             elif len(sel_date) == 1:
                 df = df[df['date'].dt.date == sel_date[0]]
+        elif isinstance(sel_date, date):
+            df = df[df['date'].dt.date == sel_date]
 
         if sort_opt == "Date (Newest)":
             df = df.sort_values(by='date', ascending=False)
@@ -588,12 +529,9 @@ elif menu == "📜 Trades History":
         for _, row in df.iterrows():
             t = all_trades[int(row['original_index'])]
             idx = int(row['original_index'])
-
             with st.expander(f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']}R"):
                 st.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,))
-
                 if t.get('general_notes'): st.info(f"**General Notes:** {t['general_notes']}")
-
                 ch1, ch2 = st.columns(2)
                 ch1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
                 if t.get('interfered') == 'Yes':
@@ -601,7 +539,6 @@ elif menu == "📜 Trades History":
                 else:
                     ch2.write("**🛡️ Interfered:** No")
                 st.write("---")
-
                 ca, cb = st.columns(2)
                 with ca:
                     st.markdown("### 🏛️ HTF Analysis")
