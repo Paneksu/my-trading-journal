@@ -96,33 +96,21 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 
 def load_data_from_gsheets():
-    """Pobiera dane z Google Sheets i konwertuje na listę słowników."""
     try:
-        # Pobieramy dane. ttl=0 wymusza odświeżenie tylko przy jawnym wywołaniu tej funkcji
         df = conn.read(ttl=0)
-
-        # FIX: Wypełniamy puste komórki (NaN) pustymi stringami, żeby nie psuły logiki
         df = df.fillna("")
-
-        if df.empty:
-            return []
-
+        if df.empty: return []
         data = df.to_dict(orient="records")
         processed_data = []
-
         for row in data:
-            # Konwersja typów danych z formatu arkusza na format aplikacji
             if isinstance(row.get('htf_links'), str) and row['htf_links']:
                 row['htf_links'] = row['htf_links'].split('|||')
             else:
                 row['htf_links'] = []
-
             if isinstance(row.get('ltf_links'), str) and row['ltf_links']:
                 row['ltf_links'] = row['ltf_links'].split('|||')
             else:
                 row['ltf_links'] = []
-
-            # Checklist (JSON)
             if isinstance(row.get('checklist'), str) and row['checklist']:
                 try:
                     row['checklist'] = json.loads(row['checklist'])
@@ -130,58 +118,41 @@ def load_data_from_gsheets():
                     row['checklist'] = [False] * 6
             else:
                 row['checklist'] = [False] * 6
-
-            # PnL na float
             try:
-                # Zamiana przecinka na kropkę (bezpiecznik) i konwersja
                 pnl_str = str(row.get('pnl', 0)).replace(',', '.')
                 row['pnl'] = float(pnl_str) if pnl_str else 0.0
             except:
                 row['pnl'] = 0.0
-
-            # Data na string
-            if row.get('date'):
-                row['date'] = str(row['date'])
-
+            if row.get('date'): row['date'] = str(row['date'])
             processed_data.append(row)
-
         return processed_data
     except Exception as e:
-        st.error(f"Błąd połączenia z bazą danych: {e}")
         return []
 
 
 def save_all_data(data):
-    """Zapisuje całą listę słowników do Google Sheets."""
     if not data:
-        # Jeśli lista pusta, zapisujemy same nagłówki
         df = pd.DataFrame(
             columns=['date', 'asset', 'direction', 'time', 'trade_type', 'outcome', 'pnl', 'general_notes', 'mood',
                      'interfered', 'interfered_how', 'htf_desc', 'htf_keypoints', 'htf_links', 'ltf_desc',
                      'ltf_keypoints', 'ltf_links', 'checklist'])
         conn.update(data=df)
         return
-
     data_to_save = []
     for row in data:
         new_row = row.copy()
-        # Konwersja list na stringi dla Excela
         new_row['htf_links'] = "|||".join(row['htf_links'])
         new_row['ltf_links'] = "|||".join(row['ltf_links'])
         new_row['checklist'] = json.dumps(row['checklist'])
         data_to_save.append(new_row)
-
     df = pd.DataFrame(data_to_save)
     conn.update(data=df)
 
 
-# --- ZARZĄDZANIE STANEM DANYCH (FIX LAGÓW) ---
-# Ładujemy dane tylko jeśli nie ma ich w sesji
 if 'all_trades' not in st.session_state:
     with st.spinner("Ładowanie bazy danych..."):
         st.session_state.all_trades = load_data_from_gsheets()
 
-# Używamy zmiennej lokalnej dla wygody, ale operujemy na session_state
 all_trades = st.session_state.all_trades
 
 
@@ -216,8 +187,8 @@ with st.sidebar:
     st.divider()
     if st.button("🗑️ Delete Last Entry"):
         if st.session_state.all_trades:
-            st.session_state.all_trades.pop()  # Usuwamy z pamięci
-            save_all_data(st.session_state.all_trades)  # Zapisujemy zmianę w chmurze
+            st.session_state.all_trades.pop()
+            save_all_data(st.session_state.all_trades)
             st.rerun()
 
 # --- DASHBOARD ---
@@ -329,17 +300,49 @@ if menu == "📊 Dashboard":
                         day_trades = [t for t in all_trades if t['date'] == str(curr_date)]
                         day_pnl = sum([t['pnl'] for t in day_trades])
                         has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                        valid_trades = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+                        valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
                         bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
                             'text_primary'], current_theme['text_secondary']
                         pnl_disp, badge = "", ""
+
+                        # --- LOGIKA EVALUATION (FIX) ---
+                        is_evaluation = False
+                        if day_trades and valid_trades_count > 0 and day_pnl == 0.0:
+                            is_evaluation = True
+
                         if day_trades:
-                            if valid_trades > 0:
+                            if valid_trades_count > 0:
                                 b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                 b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades}x</span>"
-                            if has_no_trade and day_pnl == 0:
+                                badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades_count}x</span>"
+
+                            if is_evaluation:
+                                # Kolorystyka dla Evaluation na podstawie Outcome
+                                outcomes = [t['outcome'] for t in day_trades if t['direction'] != 'No Trade']
+                                has_loss = 'Loss' in outcomes
+                                has_win = 'Win' in outcomes
+
+                                # Jeśli był Win, to kolorujemy na zielono (nawet jak był Loss też, bo dzień pozytywny mentalnie?),
+                                # albo jeśli był Loss a nie było Win, to na czerwono.
+                                # Przyjmijmy: Jakikolwiek Win = Zielony, Tylko Loss = Czerwony, Inne = BE
+
+                                if has_win:  # Greenish
+                                    bg_c = "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"
+                                    bor_c = "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"
+                                    pnl_c = "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"
+                                elif has_loss:  # Redish
+                                    bg_c = "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"
+                                    bor_c = "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"
+                                    pnl_c = "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"
+                                else:  # BE
+                                    bg_c = "rgba(142, 142, 147, 0.15)"
+                                    bor_c = "#8e8e93"
+                                    pnl_c = "#8e8e93"
+
+                                pnl_disp = f"<span style='font-size:0.7em; opacity:0.8; letter-spacing:1px;'>EVALUATION</span><br>{day_pnl:.1f} $"
+
+                            elif has_no_trade and day_pnl == 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
                             elif day_pnl > 0:
@@ -413,8 +416,9 @@ elif menu == "📝 Daily Journal":
                              index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']))
         trade_date = st.date_input("Date",
                                    date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date())
-        direction = st.selectbox("Direction", ["Long", "Short", "No Trade"],
-                                 index=0 if not curr else ["Long", "Short", "No Trade"].index(
+        # ZMIANA: DODANO OPCJĘ "Both"
+        direction = st.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
+                                 index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
                                      curr.get('direction', 'Long')))
         exec_time = st.text_input("Time", value="" if not curr else curr['time'])
         st.write("---")
@@ -463,8 +467,6 @@ elif menu == "📝 Daily Journal":
             "general_notes": gen_notes, "mood": mood, "interfered": interfere, "interfered_how": inter_how,
             "checklist": [ch1, ch2, ch3, ch4, ch5, ch6], "outcome": outcome, "pnl": pnl_val
         }
-
-        # --- AKTUALIZACJA DANYCH (FIX NADPISYWANIA) ---
         if st.session_state.editing_index is not None:
             st.session_state.all_trades[st.session_state.editing_index] = new_data
             st.session_state.editing_index = None
@@ -494,6 +496,7 @@ elif menu == "📜 Trades History":
             c_f1, c_f2, c_f3, c_f4 = st.columns(4)
             sel_asset = c_f1.multiselect("Asset", options=df['asset'].unique())
             sel_outcome = c_f2.multiselect("Outcome", options=df['outcome'].unique())
+            # ZMIANA: DODANO OPCJĘ "Both" DO FILTRA
             sel_direction = c_f3.multiselect("Direction", options=df['direction'].unique())
 
             min_date, max_date = df['date'].min().date(), df['date'].max().date()
