@@ -82,7 +82,16 @@ st.markdown(f"""
     div[data-testid="stPopover"] > button {{ height: 120px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -120px !important; position: relative; z-index: 5; }}
     div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 2px solid {current_theme['accent']} !important; }}
     div[data-testid="column"] {{ padding: 2px !important; }}
-    div[data-testid="stPopoverBody"] {{ border: 1px solid {current_theme['border']} !important; background-color: {current_theme['popover_bg']} !important; color: {current_theme['text_primary']} !important; min-width: 500px !important; }}
+
+    /* --- ZMIANA: ROZMIAR POPUPA --- */
+    div[data-testid="stPopoverBody"] {{ 
+        border: 1px solid {current_theme['border']} !important; 
+        background-color: {current_theme['popover_bg']} !important; 
+        color: {current_theme['text_primary']} !important; 
+        min-width: 1200px !important; /* POWIĘKSZONE Z 500px */
+        max-width: 95vw !important;   /* ZABEZPIECZENIE NA MNIEJSZE EKRANY */
+    }}
+
     .highlight-box {{ background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; padding: 10px; border-radius: 5px; border-left: 5px solid #00ff7f; margin-bottom: 10px; color: {current_theme['text_primary']}; border: 1px solid {current_theme['border']}; }}
     .streamlit-expanderHeader {{ background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; border-radius: 5px; border: 1px solid {current_theme['border']}; }}
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"], input, textarea, select {{ background-color: {current_theme['input_bg']} !important; color: {current_theme['text_primary']} !important; border-color: {current_theme['border']} !important; }}
@@ -422,12 +431,10 @@ elif menu == "📝 Daily Journal":
         st.write("---")
         gen_notes = st.text_area("General Notes", value="" if not curr else curr.get('general_notes', ""))
 
-        # --- FIX: MOOD ERROR ---
         mood_options = ["Stressed", "Neutral", "Euphoric"]
         mood_val = curr['mood'] if curr and curr.get('mood') in mood_options else "Neutral"
         mood = st.select_slider("Mood", options=mood_options, value=mood_val)
 
-        # --- FIX: INTERFERE DEFAULT ---
         interfere_val = 1 if curr and curr.get('interfered') == "Yes" else 0
         interfere = st.radio("Interfered?", ["No", "Yes"], index=interfere_val)
         inter_how = st.text_input("How?",
