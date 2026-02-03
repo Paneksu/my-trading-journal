@@ -12,7 +12,6 @@ st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
 if 'theme' not in st.session_state:
     st.session_state.theme = "Dark"
 
-# Inicjalizacja menu
 if 'menu_nav' not in st.session_state:
     st.session_state.menu_nav = "📊 Dashboard"
 
@@ -305,43 +304,30 @@ if menu == "📊 Dashboard":
                         bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
                             'text_primary'], current_theme['text_secondary']
                         pnl_disp, badge = "", ""
-
-                        # --- LOGIKA EVALUATION (FIX) ---
                         is_evaluation = False
-                        if day_trades and valid_trades_count > 0 and day_pnl == 0.0:
-                            is_evaluation = True
+                        if day_trades and valid_trades_count > 0 and day_pnl == 0.0: is_evaluation = True
 
                         if day_trades:
                             if valid_trades_count > 0:
                                 b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                 b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
                                 badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades_count}x</span>"
-
                             if is_evaluation:
-                                # Kolorystyka dla Evaluation na podstawie Outcome
                                 outcomes = [t['outcome'] for t in day_trades if t['direction'] != 'No Trade']
-                                has_loss = 'Loss' in outcomes
-                                has_win = 'Win' in outcomes
-
-                                # Jeśli był Win, to kolorujemy na zielono (nawet jak był Loss też, bo dzień pozytywny mentalnie?),
-                                # albo jeśli był Loss a nie było Win, to na czerwono.
-                                # Przyjmijmy: Jakikolwiek Win = Zielony, Tylko Loss = Czerwony, Inne = BE
-
-                                if has_win:  # Greenish
-                                    bg_c = "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"
-                                    bor_c = "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"
-                                    pnl_c = "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"
-                                elif has_loss:  # Redish
-                                    bg_c = "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"
-                                    bor_c = "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"
-                                    pnl_c = "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"
-                                else:  # BE
-                                    bg_c = "rgba(142, 142, 147, 0.15)"
-                                    bor_c = "#8e8e93"
-                                    pnl_c = "#8e8e93"
-
+                                has_loss, has_win = 'Loss' in outcomes, 'Win' in outcomes
+                                if has_win:
+                                    bg_c, bor_c, pnl_c = (
+                                        "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                        "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
+                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
+                                elif has_loss:
+                                    bg_c, bor_c, pnl_c = (
+                                        "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                        "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
+                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
+                                else:
+                                    bg_c, bor_c, pnl_c = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93"
                                 pnl_disp = f"<span style='font-size:0.7em; opacity:0.8; letter-spacing:1px;'>EVALUATION</span><br>{day_pnl:.1f} $"
-
                             elif has_no_trade and day_pnl == 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
@@ -416,7 +402,6 @@ elif menu == "📝 Daily Journal":
                              index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']))
         trade_date = st.date_input("Date",
                                    date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date())
-        # ZMIANA: DODANO OPCJĘ "Both"
         direction = st.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
                                  index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
                                      curr.get('direction', 'Long')))
@@ -436,9 +421,15 @@ elif menu == "📝 Daily Journal":
         ltf_desc = st.text_area("LTF Model", value="" if not curr else curr['ltf_desc'])
         st.write("---")
         gen_notes = st.text_area("General Notes", value="" if not curr else curr.get('general_notes', ""))
-        mood = st.select_slider("Mood", options=["Stressed", "Neutral", "Euphoric"],
-                                value="Neutral" if not curr else curr['mood'])
-        interfere = st.radio("Interfered?", ["No", "Yes"], index=0 if not curr or curr['interfered'] == "No" else 1)
+
+        # --- FIX: MOOD ERROR ---
+        mood_options = ["Stressed", "Neutral", "Euphoric"]
+        mood_val = curr['mood'] if curr and curr.get('mood') in mood_options else "Neutral"
+        mood = st.select_slider("Mood", options=mood_options, value=mood_val)
+
+        # --- FIX: INTERFERE DEFAULT ---
+        interfere_val = 1 if curr and curr.get('interfered') == "Yes" else 0
+        interfere = st.radio("Interfered?", ["No", "Yes"], index=interfere_val)
         inter_how = st.text_input("How?",
                                   value="" if not curr else curr['interfered_how']) if interfere == "Yes" else ""
 
@@ -496,7 +487,6 @@ elif menu == "📜 Trades History":
             c_f1, c_f2, c_f3, c_f4 = st.columns(4)
             sel_asset = c_f1.multiselect("Asset", options=df['asset'].unique())
             sel_outcome = c_f2.multiselect("Outcome", options=df['outcome'].unique())
-            # ZMIANA: DODANO OPCJĘ "Both" DO FILTRA
             sel_direction = c_f3.multiselect("Direction", options=df['direction'].unique())
 
             min_date, max_date = df['date'].min().date(), df['date'].max().date()
