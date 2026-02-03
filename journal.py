@@ -2,15 +2,15 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date, timedelta
 import calendar
-import os
 import json
+from streamlit_gsheets import GSheetsConnection
 
 # --- KONFIGURACJA POCZĄTKOWA ---
 st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
 
 # --- ZARZĄDZANIE MOTYWEM I STANEM ---
 if 'theme' not in st.session_state:
-    st.session_state.theme = "Dark"  # Domyślny
+    st.session_state.theme = "Dark"
 
 if 'menu_nav' not in st.session_state:
     st.session_state.menu_nav = "📊 Dashboard"
@@ -59,201 +59,115 @@ with top_col2:
         st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
         st.rerun()
 
-# --- INJECT CSS (DYNAMICZNY) ---
+# --- INJECT CSS ---
 st.markdown(f"""
     <style>
-    /* GLOBALNE TŁO */
-    .stApp {{
-        background-color: {current_theme['bg_app']};
-        color: {current_theme['text_primary']};
-    }}
+    .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
+    [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
+    .stMetric {{ background: {current_theme['bg_metric']}; padding: 20px; border-radius: 12px; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {{ color: {current_theme['text_primary']} !important; }}
+    h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
+    .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
+    div[data-testid="stButton"] button {{ border: 1px solid {current_theme['border']}; background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; font-weight: bold; box-shadow: {current_theme['card_shadow']}; }}
+    div[data-testid="column"] div[data-testid="stButton"] button {{ border-radius: 50%; width: 45px; height: 45px; }}
 
-    /* SIDEBAR */
-    [data-testid="stSidebar"] {{ 
-        background-color: {current_theme['bg_sidebar']}; 
-        border-right: 1px solid {current_theme['border']}; 
-    }}
+    [data-testid="stImage"] {{ overflow: visible !important; position: relative !important; }}
+    button[title="View fullscreen"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: 2.5rem !important; height: 2.5rem !important; right: 0.5rem !important; top: 0.5rem !important; z-index: 999999 !important; cursor: pointer !important; border-radius: 8px !important; align-items: center !important; justify-content: center !important; transition: background-color 0.2s !important; }}
+    button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
+    button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    /* METRYKI */
-    .stMetric {{ 
-        background: {current_theme['bg_metric']}; 
-        padding: 20px; 
-        border-radius: 12px; 
-        border: 1px solid {current_theme['border']}; 
-        color: {current_theme['text_primary']};
-        box-shadow: {current_theme['card_shadow']};
-    }}
-
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {{
-        color: {current_theme['text_primary']} !important;
-    }}
-
-    /* TEKSTY */
-    h1, h2, h3, h4, p, span, div, label {{
-        color: {current_theme['text_primary']};
-    }}
-
-    .stMarkdown p {{
-        color: {current_theme['text_primary']} !important;
-    }}
-
-    /* BUTTONS - Widgety */
-    div[data-testid="stButton"] button {{
-        border: 1px solid {current_theme['border']};
-        background-color: {current_theme['bg_card']};
-        color: {current_theme['text_primary']};
-        font-weight: bold;
-        box-shadow: {current_theme['card_shadow']};
-    }}
-
-    /* Przycisk motywu */
-    div[data-testid="column"] div[data-testid="stButton"] button {{
-        border-radius: 50%;
-        width: 45px;
-        height: 45px;
-    }}
-
-    /* --- FIX: PEŁNY EKRAN ZDJĘĆ --- */
-    [data-testid="stImage"] {{
-        overflow: visible !important;
-        position: relative !important;
-    }}
-
-    button[title="View fullscreen"] {{
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        background-color: rgba(0, 0, 0, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        width: 2.5rem !important;
-        height: 2.5rem !important;
-        right: 0.5rem !important;
-        top: 0.5rem !important;
-        z-index: 999999 !important;
-        cursor: pointer !important;
-        border-radius: 8px !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: background-color 0.2s !important;
-    }}
-
-    button[title="View fullscreen"]:hover {{
-        background-color: rgba(0, 0, 0, 0.9) !important;
-        border-color: {current_theme['accent']} !important;
-        transform: scale(1.05);
-    }}
-
-    button[title="View fullscreen"] svg {{
-        fill: white !important;
-        width: 1.2rem !important;
-        height: 1.2rem !important;
-    }}
-
-    /* --- CSS KALENDARZA --- */
-    .day-card {{
-        height: 120px;
-        width: 100%;
-        border-radius: 12px;
-        padding: 10px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        border: 1px solid {current_theme['border']};
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-sizing: border-box;
-        background-color: {current_theme['bg_card']};
-        box-shadow: {current_theme['card_shadow']};
-    }}
-
-    .weekly-summary-title {{
-        font-size: 0.8em;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        opacity: 0.7;
-    }}
-    .weekly-summary-value {{
-        font-size: 1.2em;
-        font-weight: bold;
-    }}
-
-    div[data-testid="stPopover"] > button {{
-        height: 120px !important;
-        width: 100% !important;
-        background-color: transparent !important;
-        border: none !important;
-        border-radius: 12px !important;
-        color: transparent !important;
-        margin-top: -120px !important;
-        position: relative;
-        z-index: 5;
-    }}
-
-    div[data-testid="stPopover"] > button:hover {{
-        background-color: rgba(128, 128, 128, 0.05) !important;
-        border: 2px solid {current_theme['accent']} !important;
-    }}
-
+    .day-card {{ height: 120px; width: 100%; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
+    .weekly-summary-title {{ font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
+    .weekly-summary-value {{ font-size: 1.2em; font-weight: bold; }}
+    div[data-testid="stPopover"] > button {{ height: 120px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -120px !important; position: relative; z-index: 5; }}
+    div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 2px solid {current_theme['accent']} !important; }}
     div[data-testid="column"] {{ padding: 2px !important; }}
-
-    div[data-testid="stPopoverBody"] {{
-        border: 1px solid {current_theme['border']} !important;
-        background-color: {current_theme['popover_bg']} !important;
-        color: {current_theme['text_primary']} !important;
-        min-width: 500px !important;
-    }}
-
-    /* Highlight Box */
-    .highlight-box {{ 
-        background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; 
-        padding: 10px; 
-        border-radius: 5px; 
-        border-left: 5px solid #00ff7f; 
-        margin-bottom: 10px; 
-        color: {current_theme['text_primary']};
-        border: 1px solid {current_theme['border']};
-    }}
-
-    /* Expander */
-    .streamlit-expanderHeader {{
-        background-color: {current_theme['bg_card']};
-        color: {current_theme['text_primary']};
-        border-radius: 5px;
-        border: 1px solid {current_theme['border']};
-    }}
-
-    /* Inputs */
-    div[data-baseweb="select"] > div, 
-    div[data-baseweb="input"] > div,
-    div[data-baseweb="base-input"],
-    input, textarea, select {{
-        background-color: {current_theme['input_bg']} !important;
-        color: {current_theme['text_primary']} !important;
-        border-color: {current_theme['border']} !important;
-    }}
-
-    div[data-baseweb="select"] svg, 
-    div[data-baseweb="input"] svg {{
-        fill: {current_theme['text_secondary']} !important;
-    }}
+    div[data-testid="stPopoverBody"] {{ border: 1px solid {current_theme['border']} !important; background-color: {current_theme['popover_bg']} !important; color: {current_theme['text_primary']} !important; min-width: 500px !important; }}
+    .highlight-box {{ background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; padding: 10px; border-radius: 5px; border-left: 5px solid #00ff7f; margin-bottom: 10px; color: {current_theme['text_primary']}; border: 1px solid {current_theme['border']}; }}
+    .streamlit-expanderHeader {{ background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; border-radius: 5px; border: 1px solid {current_theme['border']}; }}
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"], input, textarea, select {{ background-color: {current_theme['input_bg']} !important; color: {current_theme['text_primary']} !important; border-color: {current_theme['border']} !important; }}
+    div[data-baseweb="select"] svg, div[data-baseweb="input"] svg {{ fill: {current_theme['text_secondary']} !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-DB_FILE = 'trading_data.json'
+# --- GOOGLE SHEETS CONNECTION ---
+# Inicjalizacja połączenia
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 
 def load_data():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, 'r') as f:
-            try:
-                return json.load(f)
-            except:
-                return []
-    return []
+    try:
+        # Pobieramy dane z arkusza jako DataFrame
+        df = conn.read(ttl=0)  # ttl=0 wyłącza cache, żeby widzieć zmiany od razu
+        if df.empty:
+            return []
+
+        # Konwersja DataFrame na listę słowników (format używany w Twoim kodzie)
+        data = df.to_dict(orient="records")
+
+        # Odtwarzanie list i typów (Google Sheets spłaszcza wszystko do stringów/liczb)
+        for row in data:
+            # Listy linków (zapisane jako string oddzielony przecinkami lub nowymi liniami)
+            if isinstance(row.get('htf_links'), str):
+                row['htf_links'] = row['htf_links'].split('|||') if row['htf_links'] else []
+            elif pd.isna(row.get('htf_links')):
+                row['htf_links'] = []
+
+            if isinstance(row.get('ltf_links'), str):
+                row['ltf_links'] = row['ltf_links'].split('|||') if row['ltf_links'] else []
+            elif pd.isna(row.get('ltf_links')):
+                row['ltf_links'] = []
+
+            # Checklist (zapisany jako JSON string)
+            if isinstance(row.get('checklist'), str):
+                try:
+                    row['checklist'] = json.loads(row['checklist'])
+                except:
+                    row['checklist'] = [False] * 6
+            elif pd.isna(row.get('checklist')):
+                row['checklist'] = [False] * 6
+
+            # Upewnienie się że PnL to float
+            row['pnl'] = float(row['pnl']) if row.get('pnl') else 0.0
+
+            # Daty i stringi (usuwanie NaN)
+            for key in row:
+                if pd.isna(row[key]):
+                    row[key] = ""
+                else:
+                    if key == 'date':
+                        row[key] = str(row[key])
+
+        return data
+    except Exception as e:
+        # Jeśli arkusz jest pusty lub nie istnieje, zwracamy pustą listę
+        # st.error(f"Błąd ładowania danych: {e}") # Do debugowania
+        return []
 
 
 def save_all_data(data):
-    with open(DB_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+    if not data:
+        # Jeśli lista jest pusta, tworzymy pusty DF z kolumnami
+        df = pd.DataFrame(
+            columns=['date', 'asset', 'direction', 'time', 'trade_type', 'outcome', 'pnl', 'general_notes', 'mood',
+                     'interfered', 'interfered_how', 'htf_desc', 'htf_keypoints', 'htf_links', 'ltf_desc',
+                     'ltf_keypoints', 'ltf_links', 'checklist'])
+        conn.update(data=df)
+        return
+
+    # Przygotowanie kopii danych do zapisu (konwersja list na stringi)
+    data_to_save = []
+    for row in data:
+        new_row = row.copy()
+        # Łączymy linki w jeden string z separatorem |||
+        new_row['htf_links'] = "|||".join(row['htf_links'])
+        new_row['ltf_links'] = "|||".join(row['ltf_links'])
+        # Checklistę zapisujemy jako JSON string
+        new_row['checklist'] = json.dumps(row['checklist'])
+        data_to_save.append(new_row)
+
+    df = pd.DataFrame(data_to_save)
+    conn.update(data=df)
 
 
 all_trades = load_data()
@@ -387,7 +301,6 @@ if menu == "📊 Dashboard":
                                         d1.caption(f"🕒 {t['time']}")
                                         d2.caption(f"🔄 {t['trade_type']}")
                                         d3.caption(f"🎯 {t['outcome']}")
-
                                         if t.get('general_notes'): st.info(f"📝 **Note:** {t['general_notes']}")
 
                                         cp1, cp2 = st.columns(2)
@@ -401,14 +314,12 @@ if menu == "📊 Dashboard":
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
                                             st.markdown("#### 🏛️ HTF Analysis")
-                                            # ADDED: Narrative & Key Points
                                             st.markdown(f"**Narrative:** {t.get('htf_desc', '-')}")
                                             st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
                                             st.markdown("#### ⚡ LTF Analysis")
-                                            # ADDED: Model & Key Points
                                             st.markdown(f"**Model:** {t.get('ltf_desc', '-')}")
                                             st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
                                             for l in t.get('ltf_links', []):
@@ -419,7 +330,6 @@ if menu == "📊 Dashboard":
                                 st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
 
                 else:
-                    # LOGIKA ZWYKŁEGO DNIA
                     if day == 0:
                         cols[i].write("")
                     else:
@@ -513,14 +423,12 @@ if menu == "📊 Dashboard":
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
                                             st.markdown("#### 🏛️ HTF Analysis")
-                                            # ADDED: Narrative & Key Points
                                             st.markdown(f"**Narrative:** {t.get('htf_desc', '-')}")
                                             st.markdown(f"**Key Points:** {t.get('htf_keypoints', '-')}")
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
                                             st.markdown("#### ⚡ LTF Analysis")
-                                            # ADDED: Model & Key Points
                                             st.markdown(f"**Model:** {t.get('ltf_desc', '-')}")
                                             st.markdown(f"**Key Points:** {t.get('ltf_keypoints', '-')}")
                                             for l in t.get('ltf_links', []):
@@ -540,7 +448,6 @@ if menu == "📊 Dashboard":
 
 # --- DAILY JOURNAL ---
 elif menu == "📝 Daily Journal":
-    # (RESZTA BEZ ZMIAN)
     with top_col1:
         st.title("Daily Trade Entry")
 
