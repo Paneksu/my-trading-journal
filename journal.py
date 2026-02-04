@@ -83,16 +83,26 @@ st.markdown(f"""
     div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 2px solid {current_theme['accent']} !important; }}
     div[data-testid="column"] {{ padding: 2px !important; }}
 
-    /* --- ZMIANA: ROZMIAR POPUPA --- */
     div[data-testid="stPopoverBody"] {{ 
         border: 1px solid {current_theme['border']} !important; 
         background-color: {current_theme['popover_bg']} !important; 
         color: {current_theme['text_primary']} !important; 
-        min-width: 1200px !important; /* POWIĘKSZONE Z 500px */
-        max-width: 95vw !important;   /* ZABEZPIECZENIE NA MNIEJSZE EKRANY */
+        min-width: 1200px !important; 
+        max-width: 95vw !important;
     }}
 
-    .highlight-box {{ background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; padding: 10px; border-radius: 5px; border-left: 5px solid #00ff7f; margin-bottom: 10px; color: {current_theme['text_primary']}; border: 1px solid {current_theme['border']}; }}
+    /* --- ZMIANA: white-space: pre-wrap dla zachowania enterów --- */
+    .highlight-box {{ 
+        background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; 
+        padding: 10px; 
+        border-radius: 5px; 
+        border-left: 5px solid #00ff7f; 
+        margin-bottom: 10px; 
+        color: {current_theme['text_primary']};
+        border: 1px solid {current_theme['border']};
+        white-space: pre-wrap; /* TO ODPOWIADA ZA NOWE LINIE */
+    }}
+
     .streamlit-expanderHeader {{ background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; border-radius: 5px; border: 1px solid {current_theme['border']}; }}
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"], input, textarea, select {{ background-color: {current_theme['input_bg']} !important; color: {current_theme['text_primary']} !important; border-color: {current_theme['border']} !important; }}
     div[data-baseweb="select"] svg, div[data-baseweb="input"] svg {{ fill: {current_theme['text_secondary']} !important; }}
@@ -288,13 +298,23 @@ if menu == "📊 Dashboard":
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
+                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
+                                            st.markdown("#### 🏛️ HTF Analysis")
                                             st.markdown(
-                                                f"#### 🏛️ HTF Analysis\n**Narrative:** {t.get('htf_desc', '-')}\n**Key Points:** {t.get('htf_keypoints', '-')}")
+                                                f"**HTF Notes:** {t.get('htf_desc', '-').replace(chr(10), '  ' + chr(10))}")
+                                            st.markdown(
+                                                f"<div class='highlight-box'><b>Key Points:</b><br>{t.get('htf_keypoints', '-')}</div>",
+                                                unsafe_allow_html=True)
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
+                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
+                                            st.markdown("#### ⚡ LTF Analysis")
                                             st.markdown(
-                                                f"#### ⚡ LTF Analysis\n**Model:** {t.get('ltf_desc', '-')}\n**Key Points:** {t.get('ltf_keypoints', '-')}")
+                                                f"**LTF Notes:** {t.get('ltf_desc', '-').replace(chr(10), '  ' + chr(10))}")
+                                            st.markdown(
+                                                f"<div class='highlight-box'><b>Key Points:</b><br>{t.get('ltf_keypoints', '-')}</div>",
+                                                unsafe_allow_html=True)
                                             for l in t.get('ltf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         st.divider()
@@ -382,13 +402,23 @@ if menu == "📊 Dashboard":
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
+                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
+                                            st.markdown("#### 🏛️ HTF Analysis")
                                             st.markdown(
-                                                f"#### 🏛️ HTF Analysis\n**Narrative:** {t.get('htf_desc', '-')}\n**Key Points:** {t.get('htf_keypoints', '-')}")
+                                                f"**HTF Notes:** {t.get('htf_desc', '-').replace(chr(10), '  ' + chr(10))}")
+                                            st.markdown(
+                                                f"<div class='highlight-box'><b>Key Points:</b><br>{t.get('htf_keypoints', '-')}</div>",
+                                                unsafe_allow_html=True)
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
+                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
+                                            st.markdown("#### ⚡ LTF Analysis")
                                             st.markdown(
-                                                f"#### ⚡ LTF Analysis\n**Model:** {t.get('ltf_desc', '-')}\n**Key Points:** {t.get('ltf_keypoints', '-')}")
+                                                f"**LTF Notes:** {t.get('ltf_desc', '-').replace(chr(10), '  ' + chr(10))}")
+                                            st.markdown(
+                                                f"<div class='highlight-box'><b>Key Points:</b><br>{t.get('ltf_keypoints', '-')}</div>",
+                                                unsafe_allow_html=True)
                                             for l in t.get('ltf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         st.divider()
@@ -417,7 +447,8 @@ elif menu == "📝 Daily Journal":
         exec_time = st.text_input("Time", value="" if not curr else curr['time'])
         st.write("---")
         htf_links = st.text_area("HTF Links", value="" if not curr else "\n".join(curr['htf_links']))
-        htf_narr = st.text_area("HTF Narrative", value="" if not curr else curr['htf_desc'])
+        # ZMIANA: ETYKIETA
+        htf_narr = st.text_area("HTF Notes", value="" if not curr else curr['htf_desc'])
         htf_kp = st.text_area("HTF Key Points", value="" if not curr else curr['htf_keypoints'])
 
     with col2:
@@ -427,7 +458,8 @@ elif menu == "📝 Daily Journal":
             curr['trade_type']))
         ltf_links = st.text_area("LTF Links", value="" if not curr else "\n".join(curr['ltf_links']))
         ltf_kp = st.text_area("LTF Key Points", value="" if not curr else curr['ltf_keypoints'])
-        ltf_desc = st.text_area("LTF Model", value="" if not curr else curr['ltf_desc'])
+        # ZMIANA: ETYKIETA
+        ltf_desc = st.text_area("LTF Notes", value="" if not curr else curr['ltf_desc'])
         st.write("---")
         gen_notes = st.text_area("General Notes", value="" if not curr else curr.get('general_notes', ""))
 
@@ -545,7 +577,7 @@ elif menu == "📜 Trades History":
                     st.markdown(
                         f"<div class='highlight-box'><b>HTF Key Points:</b><br>{t.get('htf_keypoints', 'N/A')}</div>",
                         unsafe_allow_html=True)
-                    st.write(f"**Narrative:** {t['htf_desc']}")
+                    st.write(f"**HTF Notes:** {t['htf_desc']}")
                     for l in t['htf_links']:
                         if "http" in l: st.image(l.strip(), use_container_width=True)
                 with cb:
@@ -553,7 +585,7 @@ elif menu == "📜 Trades History":
                     st.markdown(
                         f"<div class='highlight-box'><b>LTF Key Points:</b><br>{t.get('ltf_keypoints', 'N/A')}</div>",
                         unsafe_allow_html=True)
-                    st.write(f"**Model:** {t['ltf_desc']}")
+                    st.write(f"**LTF Notes:** {t['ltf_desc']}")
                     for l in t['ltf_links']:
                         if "http" in l: st.image(l.strip(), use_container_width=True)
     else:
