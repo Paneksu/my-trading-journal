@@ -9,8 +9,9 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
 
 # --- ZARZĄDZANIE MOTYWEM I STANEM ---
+# ZMIANA: Ustawiamy jasny motyw domyślnie, aby od razu rozjaśnić estetykę
 if 'theme' not in st.session_state:
-    st.session_state.theme = "Dark"
+    st.session_state.theme = "Light"
 
 if 'menu_nav' not in st.session_state:
     st.session_state.menu_nav = "📊 Dashboard"
@@ -20,12 +21,13 @@ if st.session_state.get('navigate_to_history'):
     st.session_state.navigate_to_history = False
 
 # --- DEFINICJA KOLORÓW DLA MOTYWÓW ---
+# ZMIANA: Odświeżona, jaśniejsza i lżejsza estetyka dla motywu "Light"
 themes = {
     "Dark": {
         "bg_app": "#0e0e12",
         "bg_sidebar": "#09090b",
         "bg_card": "#16161d",
-        "bg_metric": "linear-gradient(135deg, #16161d 0%, #1c1624 100%)",
+        "bg_metric": "linear-gradient(135deg, #16161d 0%, #231b2e 100%)",
         "border": "#2d2d3a",
         "text_primary": "#e0e0e0",
         "text_secondary": "#aaaaaa",
@@ -35,16 +37,16 @@ themes = {
         "input_bg": "#16161d"
     },
     "Light": {
-        "bg_app": "#eef2f6",
+        "bg_app": "#f4f7fa",
         "bg_sidebar": "#ffffff",
         "bg_card": "#ffffff",
-        "bg_metric": "linear-gradient(135deg, #ffffff 0%, #e0c3fc 100%)",
-        "border": "#c7d2dd",
-        "text_primary": "#1a1f36",
-        "text_secondary": "#4f566b",
-        "accent": "#6c5ce7",
+        "bg_metric": "linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%)",
+        "border": "#e1e8ed",
+        "text_primary": "#1e293b",
+        "text_secondary": "#64748b",
+        "accent": "#3b82f6",
         "popover_bg": "#ffffff",
-        "card_shadow": "0 4px 6px rgba(0,0,0,0.05)",
+        "card_shadow": "0 2px 8px rgba(0,0,0,0.04)",
         "input_bg": "#ffffff"
     }
 }
@@ -60,26 +62,36 @@ with top_col2:
         st.rerun()
 
 # --- INJECT CSS ---
+# ZMIANA: Zmniejszono paddingi aplikacji, metryk i kart kalendarza, by wszystko zmieściło się na 1 ekranie
 st.markdown(f"""
     <style>
+    /* Redukcja marginesów na górze i dole strony */
+    .block-container {{ padding-top: 1.5rem; padding-bottom: 1rem; }}
+
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
     [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
-    .stMetric {{ background: {current_theme['bg_metric']}; padding: 20px; border-radius: 12px; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
+
+    /* Zmniejszony padding metryk dla oszczędności miejsca */
+    .stMetric {{ background: {current_theme['bg_metric']}; padding: 10px 15px; border-radius: 10px; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {{ color: {current_theme['text_primary']} !important; }}
+
     h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
     .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
     div[data-testid="stButton"] button {{ border: 1px solid {current_theme['border']}; background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; font-weight: bold; box-shadow: {current_theme['card_shadow']}; }}
-    div[data-testid="column"] div[data-testid="stButton"] button {{ border-radius: 50%; width: 45px; height: 45px; }}
+    div[data-testid="column"] div[data-testid="stButton"] button {{ border-radius: 50%; width: 40px; height: 40px; padding: 0; }}
 
     [data-testid="stImage"] {{ overflow: visible !important; position: relative !important; }}
     button[title="View fullscreen"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: 2.5rem !important; height: 2.5rem !important; right: 0.5rem !important; top: 0.5rem !important; z-index: 999999 !important; cursor: pointer !important; border-radius: 8px !important; align-items: center !important; justify-content: center !important; transition: background-color 0.2s !important; }}
     button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
     button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    .day-card {{ height: 120px; width: 100%; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
-    .weekly-summary-title {{ font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
-    .weekly-summary-value {{ font-size: 1.2em; font-weight: bold; }}
-    div[data-testid="stPopover"] > button {{ height: 120px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -120px !important; position: relative; z-index: 5; }}
+    /* ZMIANA: Zmniejszono wysokość kratki z 120px do 80px */
+    .day-card {{ height: 80px; width: 100%; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
+    .weekly-summary-title {{ font-size: 0.7em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
+    .weekly-summary-value {{ font-size: 1.1em; font-weight: bold; }}
+
+    /* Dopasowanie przycisku ukrytego pod nową wysokość */
+    div[data-testid="stPopover"] > button {{ height: 80px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 10px !important; color: transparent !important; margin-top: -80px !important; position: relative; z-index: 5; }}
     div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 2px solid {current_theme['accent']} !important; }}
     div[data-testid="column"] {{ padding: 2px !important; }}
 
@@ -91,7 +103,6 @@ st.markdown(f"""
         max-width: 95vw !important;
     }}
 
-    /* --- ZMIANA: white-space: pre-wrap dla zachowania enterów --- */
     .highlight-box {{ 
         background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; 
         padding: 10px; 
@@ -100,7 +111,7 @@ st.markdown(f"""
         margin-bottom: 10px; 
         color: {current_theme['text_primary']};
         border: 1px solid {current_theme['border']};
-        white-space: pre-wrap; /* TO ODPOWIADA ZA NOWE LINIE */
+        white-space: pre-wrap;
     }}
 
     .streamlit-expanderHeader {{ background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; border-radius: 5px; border: 1px solid {current_theme['border']}; }}
@@ -212,36 +223,57 @@ with st.sidebar:
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     with top_col1:
-        st.title("Dashboard Performance")
+        st.markdown("<h2 style='margin-bottom:0px;'>Dashboard Performance</h2>", unsafe_allow_html=True)
 
     if all_trades:
         df = pd.DataFrame(all_trades)
         df['date'] = pd.to_datetime(df['date'])
 
-        c1, c2, c3, c4 = st.columns(4)
+        # ZMIANA: Kalkulacje nowych metryk
         total_pnl = df['pnl'].sum()
-        wins = len(df[df['outcome'] == 'Win'])
         total_valid = len(df[df['direction'] != 'No Trade'])
-        wr = (wins / total_valid * 100) if total_valid > 0 else 0
 
+        wins_df = df[df['pnl'] > 0]
+        losses_df = df[df['pnl'] < 0]
+
+        wins_count = len(wins_df)
+        losses_count = len(losses_df)
+
+        gross_profit = wins_df['pnl'].sum()
+        gross_loss = abs(losses_df['pnl'].sum())
+
+        wr = (wins_count / total_valid * 100) if total_valid > 0 else 0
+        avg_win = (gross_profit / wins_count) if wins_count > 0 else 0
+        avg_loss = (gross_loss / losses_count) if losses_count > 0 else 0
+
+        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+
+        # ZMIANA: Wyświetlanie 6 kolumn metryk
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         c1.metric("Net P&L", f"{total_pnl:+.1f} $")
         c2.metric("Win Rate", f"{wr:.1f}%")
-        c3.metric("Trades", total_valid)
-        c4.metric("No Trade Days", len(df[df['direction'] == 'No Trade']))
+        c3.metric("Avg Win", f"{avg_win:+.1f} $")
+        c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
 
-        st.divider()
-        st.subheader("Trading Calendar")
-        col_y, col_m = st.columns(2)
-        view_year = col_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year))
-        view_month = col_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1)
+        pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
+        c5.metric("Profit Factor", pf_display)
+        c6.metric("Trades", total_valid)
+
+        st.markdown("<hr style='margin: 10px 0;'/>", unsafe_allow_html=True)
+        col_y, col_m, _ = st.columns([1, 1, 4])
+        view_year = col_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
+                                    label_visibility="collapsed")
+        view_month = col_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1,
+                                     label_visibility="collapsed")
 
         cal = calendar.monthcalendar(view_year, view_month)
 
         cols = st.columns(7)
         days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         for i, d in enumerate(days_header):
-            cols[i].markdown(f"<center><b style='color:{current_theme['text_secondary']}'>{d}</b></center>",
-                             unsafe_allow_html=True)
+            cols[i].markdown(
+                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.9em;'>{d}</b></center>",
+                unsafe_allow_html=True)
 
         for week in cal:
             ref_day = next((d for d in week if d != 0), None)
@@ -298,7 +330,6 @@ if menu == "📊 Dashboard":
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
-                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
                                             st.markdown("#### 🏛️ HTF Analysis")
                                             st.markdown(
                                                 f"**HTF Notes:** {t.get('htf_desc', '-').replace(chr(10), '  ' + chr(10))}")
@@ -308,7 +339,6 @@ if menu == "📊 Dashboard":
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
-                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
                                             st.markdown("#### ⚡ LTF Analysis")
                                             st.markdown(
                                                 f"**LTF Notes:** {t.get('ltf_desc', '-').replace(chr(10), '  ' + chr(10))}")
@@ -319,7 +349,8 @@ if menu == "📊 Dashboard":
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         st.divider()
                             else:
-                                st.write("Brak tradów."); st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
+                                st.write("Brak tradów.");
+                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
                 else:
                     if day == 0:
                         cols[i].write("")
@@ -340,7 +371,7 @@ if menu == "📊 Dashboard":
                             if valid_trades_count > 0:
                                 b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                 b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades_count}x</span>"
+                                badge = f"<span style='font-size:0.7em;color:{b_txt};background:{b_bg};padding:1px 5px;border-radius:4px;'>{valid_trades_count}x</span>"
                             if is_evaluation:
                                 outcomes = [t['outcome'] for t in day_trades if t['direction'] != 'No Trade']
                                 has_loss, has_win = 'Loss' in outcomes, 'Win' in outcomes
@@ -356,7 +387,7 @@ if menu == "📊 Dashboard":
                                         "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
                                 else:
                                     bg_c, bor_c, pnl_c = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93"
-                                pnl_disp = f"<span style='font-size:0.7em; opacity:0.8; letter-spacing:1px;'>EVALUATION</span><br>{day_pnl:.1f} $"
+                                pnl_disp = f"<span style='font-size:0.65em; opacity:0.8; letter-spacing:1px;'>EVAL</span><br>{day_pnl:.1f} $"
                             elif has_no_trade and day_pnl == 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
@@ -373,7 +404,7 @@ if menu == "📊 Dashboard":
                             else:
                                 bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $"
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;">{pnl_disp}</div></div>"""
+                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.9em;color:{pnl_c};text-align:center;">{pnl_disp}</div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         with cols[i].popover(label=" ", use_container_width=True):
@@ -402,7 +433,6 @@ if menu == "📊 Dashboard":
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
                                         with c_htf:
-                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
                                             st.markdown("#### 🏛️ HTF Analysis")
                                             st.markdown(
                                                 f"**HTF Notes:** {t.get('htf_desc', '-').replace(chr(10), '  ' + chr(10))}")
@@ -412,7 +442,6 @@ if menu == "📊 Dashboard":
                                             for l in t.get('htf_links', []):
                                                 if "http" in l: st.image(l.strip(), use_container_width=True)
                                         with c_ltf:
-                                            # POPRAWA: Zmiana nazwy i dodanie highlight-box z obsługą enterów
                                             st.markdown("#### ⚡ LTF Analysis")
                                             st.markdown(
                                                 f"**LTF Notes:** {t.get('ltf_desc', '-').replace(chr(10), '  ' + chr(10))}")
@@ -447,7 +476,6 @@ elif menu == "📝 Daily Journal":
         exec_time = st.text_input("Time", value="" if not curr else curr['time'])
         st.write("---")
         htf_links = st.text_area("HTF Links", value="" if not curr else "\n".join(curr['htf_links']))
-        # ZMIANA: ETYKIETA
         htf_narr = st.text_area("HTF Notes", value="" if not curr else curr['htf_desc'])
         htf_kp = st.text_area("HTF Key Points", value="" if not curr else curr['htf_keypoints'])
 
@@ -458,7 +486,6 @@ elif menu == "📝 Daily Journal":
             curr['trade_type']))
         ltf_links = st.text_area("LTF Links", value="" if not curr else "\n".join(curr['ltf_links']))
         ltf_kp = st.text_area("LTF Key Points", value="" if not curr else curr['ltf_keypoints'])
-        # ZMIANA: ETYKIETA
         ltf_desc = st.text_area("LTF Notes", value="" if not curr else curr['ltf_desc'])
         st.write("---")
         gen_notes = st.text_area("General Notes", value="" if not curr else curr.get('general_notes', ""))
@@ -561,7 +588,7 @@ elif menu == "📜 Trades History":
         for _, row in df.iterrows():
             t = all_trades[int(row['original_index'])]
             idx = int(row['original_index'])
-            with st.expander(f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']}R"):
+            with st.expander(f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} $"):
                 st.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,))
                 if t.get('general_notes'): st.info(f"**General Notes:** {t['general_notes']}")
                 ch1, ch2 = st.columns(2)
