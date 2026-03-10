@@ -9,7 +9,6 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
 
 # --- ZARZĄDZANIE MOTYWEM I STANEM ---
-# ZMIANA: Powrót do domyślnego motywu Dark
 if 'theme' not in st.session_state:
     st.session_state.theme = "Dark"
 
@@ -21,7 +20,6 @@ if st.session_state.get('navigate_to_history'):
     st.session_state.navigate_to_history = False
 
 # --- DEFINICJA KOLORÓW DLA MOTYWÓW ---
-# ZMIANA: Przywrócona Twoja oryginalna estetyka i paleta barw
 themes = {
     "Dark": {
         "bg_app": "#0e0e12",
@@ -62,7 +60,6 @@ with top_col2:
         st.rerun()
 
 # --- INJECT CSS ---
-# ZMIANA: Zostawiłem zmniejszone marginesy i paddingi, żeby strona nadal mieściła się na 1 ekranie
 st.markdown(f"""
     <style>
     .block-container {{ padding-top: 1.5rem; padding-bottom: 1rem; }}
@@ -148,6 +145,10 @@ def load_data_from_gsheets():
                 row['pnl'] = float(pnl_str) if pnl_str else 0.0
             except:
                 row['pnl'] = 0.0
+
+            # Wsteczna kompatybilność: domyślnie 'Funded' dla starych danych
+            row['account_type'] = row.get('account_type') if row.get('account_type') else 'Funded'
+
             if row.get('date'): row['date'] = str(row['date'])
             processed_data.append(row)
         return processed_data
@@ -157,8 +158,10 @@ def load_data_from_gsheets():
 
 def save_all_data(data):
     if not data:
+        # ZMIANA: Dodano account_type do kolumn
         df = pd.DataFrame(
-            columns=['date', 'asset', 'direction', 'time', 'trade_type', 'outcome', 'pnl', 'general_notes', 'mood',
+            columns=['date', 'asset', 'direction', 'time', 'trade_type', 'account_type', 'outcome', 'pnl',
+                     'general_notes', 'mood',
                      'interfered', 'interfered_how', 'htf_desc', 'htf_keypoints', 'htf_links', 'ltf_desc',
                      'ltf_keypoints', 'ltf_links', 'checklist'])
         conn.update(data=df)
@@ -221,38 +224,52 @@ if menu == "📊 Dashboard":
     with top_col1:
         st.title("Dashboard Performance")
 
+    # ZMIANA: Filtr dla metryk i kalendarza
+    filter_col1, filter_col2 = st.columns([1, 4])
+    account_filter = filter_col1.radio("📂 Filter by Account:", ["All", "Funded", "Evaluation"], horizontal=True)
+
     if all_trades:
-        df = pd.DataFrame(all_trades)
-        df['date'] = pd.to_datetime(df['date'])
+        # Filtrowanie tablicy w zaleznosci od wyboru
+        if account_filter == "All":
+            filtered_trades = all_trades
+        else:
+            filtered_trades = [t for t in all_trades if t.get('account_type', 'Funded') == account_filter]
 
-        # Nowe metryki
-        total_pnl = df['pnl'].sum()
-        total_valid = len(df[df['direction'] != 'No Trade'])
+        df = pd.DataFrame(filtered_trades)
 
-        wins_df = df[df['pnl'] > 0]
-        losses_df = df[df['pnl'] < 0]
+        if not df.empty:
+            df['date'] = pd.to_datetime(df['date'])
 
-        wins_count = len(wins_df)
-        losses_count = len(losses_df)
+            total_pnl = df['pnl'].sum()
+            total_valid = len(df[df['direction'] != 'No Trade'])
 
-        gross_profit = wins_df['pnl'].sum()
-        gross_loss = abs(losses_df['pnl'].sum())
+            wins_df = df[df['pnl'] > 0]
+            losses_df = df[df['pnl'] < 0]
 
-        wr = (wins_count / total_valid * 100) if total_valid > 0 else 0
-        avg_win = (gross_profit / wins_count) if wins_count > 0 else 0
-        avg_loss = (gross_loss / losses_count) if losses_count > 0 else 0
+            wins_count = len(wins_df)
+            losses_count = len(losses_df)
 
-        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (float('inf') if gross_profit > 0 else 0.0)
+            gross_profit = wins_df['pnl'].sum()
+            gross_loss = abs(losses_df['pnl'].sum())
 
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("Net P&L", f"{total_pnl:+.1f} $")
-        c2.metric("Win Rate", f"{wr:.1f}%")
-        c3.metric("Avg Win", f"{avg_win:+.1f} $")
-        c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
+            wr = (wins_count / total_valid * 100) if total_valid > 0 else 0
+            avg_win = (gross_profit / wins_count) if wins_count > 0 else 0
+            avg_loss = (gross_loss / losses_count) if losses_count > 0 else 0
 
-        pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
-        c5.metric("Profit Factor", pf_display)
-        c6.metric("Trades", total_valid)
+            profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (
+                float('inf') if gross_profit > 0 else 0.0)
+
+            c1, c2, c3, c4, c5, c6 = st.columns(6)
+            c1.metric("Net P&L", f"{total_pnl:+.1f} $")
+            c2.metric("Win Rate", f"{wr:.1f}%")
+            c3.metric("Avg Win", f"{avg_win:+.1f} $")
+            c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
+
+            pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
+            c5.metric("Profit Factor", pf_display)
+            c6.metric("Trades", total_valid)
+        else:
+            st.info(f"Brak danych dla wybranego filtru: {account_filter}")
 
         st.divider()
         st.subheader("Trading Calendar")
@@ -279,7 +296,8 @@ if menu == "📊 Dashboard":
                 day_idx = week.index(ref_day)
                 week_start_date = ref_date - timedelta(days=day_idx)
                 week_end_date = week_start_date + timedelta(days=6)
-                week_trades = [t for t in all_trades if
+                # Używamy filtered_trades dla kalendarza również
+                week_trades = [t for t in filtered_trades if
                                week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
                 weekly_pnl = sum(t['pnl'] for t in week_trades)
 
@@ -311,7 +329,7 @@ if menu == "📊 Dashboard":
                                       use_container_width=True, on_click=go_to_history_for_day,
                                       args=(curr_date_sunday,))
                             st.divider()
-                            sunday_trades = [t for t in all_trades if t['date'] == str(curr_date_sunday)]
+                            sunday_trades = [t for t in filtered_trades if t['date'] == str(curr_date_sunday)]
                             if sunday_trades:
                                 for t in sunday_trades:
                                     with st.container():
@@ -320,7 +338,9 @@ if menu == "📊 Dashboard":
                                         pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
                                         h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
                                                     unsafe_allow_html=True)
-                                        st.caption(f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']}")
+                                        # ZMIANA: Pokazujemy typ konta w szczegółach transakcji
+                                        st.caption(
+                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')}")
                                         if t.get('general_notes'): st.info(f"📝 {t['general_notes']}")
                                         st.markdown("---")
                                         c_htf, c_ltf = st.columns(2)
@@ -351,7 +371,7 @@ if menu == "📊 Dashboard":
                         cols[i].write("")
                     else:
                         curr_date = date(view_year, view_month, day)
-                        day_trades = [t for t in all_trades if t['date'] == str(curr_date)]
+                        day_trades = [t for t in filtered_trades if t['date'] == str(curr_date)]
                         day_pnl = sum([t['pnl'] for t in day_trades])
                         has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
                         valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
@@ -359,31 +379,16 @@ if menu == "📊 Dashboard":
                         bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
                             'text_primary'], current_theme['text_secondary']
                         pnl_disp, badge = "", ""
-                        is_evaluation = False
-                        if day_trades and valid_trades_count > 0 and day_pnl == 0.0: is_evaluation = True
 
+                        # ZMIANA: Usunięto sztuczne przydzielanie "EVALUATION" przy 0 PnL w kafelku kalendarza.
                         if day_trades:
                             if valid_trades_count > 0:
                                 b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                 b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
                                 badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades_count}x</span>"
-                            if is_evaluation:
-                                outcomes = [t['outcome'] for t in day_trades if t['direction'] != 'No Trade']
-                                has_loss, has_win = 'Loss' in outcomes, 'Win' in outcomes
-                                if has_win:
-                                    bg_c, bor_c, pnl_c = (
-                                        "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
-                                elif has_loss:
-                                    bg_c, bor_c, pnl_c = (
-                                        "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
-                                else:
-                                    bg_c, bor_c, pnl_c = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93"
-                                pnl_disp = f"<span style='font-size:0.7em; opacity:0.8; letter-spacing:1px;'>EVALUATION</span><br>{day_pnl:.1f} $"
-                            elif has_no_trade and day_pnl == 0:
+
+                            # Zwyczajne kolorowanie w zaleznosci od PnL
+                            if has_no_trade and day_pnl == 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
                             elif day_pnl > 0:
@@ -417,7 +422,9 @@ if menu == "📊 Dashboard":
                                         pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
                                         h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
                                                     unsafe_allow_html=True)
-                                        st.caption(f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']}")
+                                        # ZMIANA: Wstawienie Account Type do popovera
+                                        st.caption(
+                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')}")
                                         if t.get('general_notes'): st.info(f"📝 {t['general_notes']}")
                                         cp1, cp2 = st.columns(2)
                                         cp1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
@@ -461,8 +468,15 @@ elif menu == "📝 Daily Journal":
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Technical Setup")
-        asset = st.selectbox("Asset", ["NQ", "MNQ", "ES", "MES", "XAUUSD"],
-                             index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']))
+
+        ca1, ca2 = st.columns(2)
+        asset = ca1.selectbox("Asset", ["NQ", "MNQ", "ES", "MES", "XAUUSD"],
+                              index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']))
+
+        # ZMIANA: Wybór Account Type podczas dodawania
+        acc_type_idx = 0 if not curr else ["Funded", "Evaluation"].index(curr.get('account_type', 'Funded'))
+        account_type = ca2.selectbox("Account Type", ["Funded", "Evaluation"], index=acc_type_idx)
+
         trade_date = st.date_input("Date",
                                    date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date())
         direction = st.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
@@ -513,7 +527,7 @@ elif menu == "📝 Daily Journal":
     if st.button("💾 SAVE RECORD", use_container_width=True):
         new_data = {
             "date": str(trade_date), "asset": asset, "direction": direction, "time": exec_time,
-            "trade_type": trade_type,
+            "trade_type": trade_type, "account_type": account_type,  # ZMIANA: Zapis konta do bazy
             "htf_links": htf_links.split('\n'), "htf_desc": htf_narr, "htf_keypoints": htf_kp,
             "ltf_links": ltf_links.split('\n'), "ltf_desc": ltf_desc, "ltf_keypoints": ltf_kp,
             "general_notes": gen_notes, "mood": mood, "interfered": interfere, "interfered_how": inter_how,
@@ -548,7 +562,12 @@ elif menu == "📜 Trades History":
             c_f1, c_f2, c_f3, c_f4 = st.columns(4)
             sel_asset = c_f1.multiselect("Asset", options=df['asset'].unique())
             sel_outcome = c_f2.multiselect("Outcome", options=df['outcome'].unique())
-            sel_direction = c_f3.multiselect("Direction", options=df['direction'].unique())
+
+            # ZMIANA: Dodano filtrowanie po account type w historii
+            if 'account_type' in df.columns:
+                sel_account = c_f3.multiselect("Account Type", options=df['account_type'].unique())
+            else:
+                sel_account = []
 
             min_date, max_date = df['date'].min().date(), df['date'].max().date()
             default_val = (preset_date, preset_date) if preset_date else (min_date, max_date)
@@ -559,7 +578,8 @@ elif menu == "📜 Trades History":
 
         if sel_asset: df = df[df['asset'].isin(sel_asset)]
         if sel_outcome: df = df[df['outcome'].isin(sel_outcome)]
-        if sel_direction: df = df[df['direction'].isin(sel_direction)]
+        if sel_account: df = df[df['account_type'].isin(sel_account)]
+
         if isinstance(sel_date, tuple):
             if len(sel_date) == 2:
                 df = df[(df['date'].dt.date >= sel_date[0]) & (df['date'].dt.date <= sel_date[1])]
@@ -583,7 +603,10 @@ elif menu == "📜 Trades History":
         for _, row in df.iterrows():
             t = all_trades[int(row['original_index'])]
             idx = int(row['original_index'])
-            with st.expander(f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} $"):
+            # ZMIANA: Dodano wyświetlanie informacji o typie konta (Funded/Eval) na nagłówku historii
+            acc_label = f" | 💼 {t.get('account_type', 'Funded')}"
+            with st.expander(
+                    f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} ${acc_label}"):
                 st.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,))
                 if t.get('general_notes'): st.info(f"**General Notes:** {t['general_notes']}")
                 ch1, ch2 = st.columns(2)
