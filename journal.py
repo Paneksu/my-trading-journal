@@ -238,6 +238,12 @@ def go_to_edit_mode(index):
         st.session_state.menu_nav = "📝 Daily Journal"
 
 
+def delete_trade(index):
+    if 0 <= index < len(st.session_state.all_trades):
+        st.session_state.all_trades.pop(index)
+        save_all_data(st.session_state.all_trades)
+
+
 def go_to_history_for_day(target_date):
     if isinstance(target_date, str):
         try:
@@ -263,11 +269,6 @@ with st.sidebar:
                     ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
                      "📓 Trade Notes"], key="menu_nav")
     st.divider()
-    if st.button("🗑️ Delete Last Entry"):
-        if st.session_state.all_trades:
-            st.session_state.all_trades.pop()
-            save_all_data(st.session_state.all_trades)
-            st.rerun()
 
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
@@ -950,7 +951,11 @@ elif menu == "📜 Trades History":
 
             with st.expander(
                     f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} ${acc_label}"):
-                st.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,))
+
+                b1, b2, _ = st.columns([1, 1, 4])
+                b1.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,),
+                          use_container_width=True)
+                b2.button(f"🗑️ Delete", key=f"del_{idx}", on_click=delete_trade, args=(idx,), use_container_width=True)
 
                 # Ujednolicony podgląd dla nowego formatu Daily Journal oraz Backtesting
                 if t.get('is_backtest') or t.get('notes') or t.get('confluences'):
