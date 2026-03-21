@@ -65,6 +65,9 @@ with top_col2:
 # --- INJECT CSS ---
 st.markdown(f"""
     <style>
+    /* UKRYCIE DOMYŚLNEGO NAGŁÓWKA STREAMLIT */
+    [data-testid="stHeader"] {{ display: none !important; }}
+
     .block-container {{ padding-top: 1.5rem; padding-bottom: 1rem; }}
 
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
