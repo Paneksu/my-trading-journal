@@ -62,22 +62,19 @@ with top_col2:
         st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
         st.rerun()
 
-# --- INJECT CSS (POWIĘKSZONE METRYKI I KOMPAKTOWY KALENDARZ) ---
+# --- INJECT CSS ---
 st.markdown(f"""
     <style>
-    /* Ukrycie domyślnego nagłówka Streamlit (m.in. przycisku Fork i Menu) */
+    /* UKRYCIE DOMYŚLNEGO NAGŁÓWKA STREAMLIT */
     [data-testid="stHeader"] {{ display: none !important; }}
 
-    /* Agresywna redukcja pustych przestrzeni - kompresja widoku na 1 stronę */
-    .block-container {{ padding-top: 1rem; padding-bottom: 0rem; max-width: 98%; }}
+    .block-container {{ padding-top: 1.5rem; padding-bottom: 1rem; }}
 
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
     [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
 
-    /* POWIĘKSZONE I BARDZIEJ CZYTELNE KAFELKI METRICS */
-    div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 15px 20px !important; border-radius: 12px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
-    [data-testid="stMetricValue"] {{ font-size: 2.2rem !important; font-weight: bold !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
-    [data-testid="stMetricLabel"] {{ font-size: 1.1rem !important; color: {current_theme['text_secondary']} !important; }}
+    .stMetric {{ background: {current_theme['bg_metric']}; padding: 10px 15px; border-radius: 12px; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {{ color: {current_theme['text_primary']} !important; }}
 
     h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
     .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
@@ -89,14 +86,12 @@ st.markdown(f"""
     button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
     button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    /* Kompaktowe kafelki dni w Kalendarzu - ZNACZNIE MNIEJSZE (55px) */
-    .day-card {{ height: 55px; width: 100%; border-radius: 8px; padding: 2px 4px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
-    .weekly-summary-title {{ font-size: 0.55em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
-    .weekly-summary-value {{ font-size: 0.8em; font-weight: bold; line-height: 1.1; text-align: center; }}
+    .day-card {{ height: 95px; width: 100%; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
+    .weekly-summary-title {{ font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
+    .weekly-summary-value {{ font-size: 1.1em; font-weight: bold; line-height: 1.2; }}
 
-    div[data-testid="stPopover"] > button {{ height: 55px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 8px !important; color: transparent !important; margin-top: -55px !important; position: relative; z-index: 5; }}
-    div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 1px solid {current_theme['accent']} !important; }}
-
+    div[data-testid="stPopover"] > button {{ height: 95px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -95px !important; position: relative; z-index: 5; }}
+    div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 2px solid {current_theme['accent']} !important; }}
     div[data-testid="column"] {{ padding: 2px !important; }}
 
     div[data-testid="stPopoverBody"] {{ 
@@ -271,14 +266,10 @@ with st.sidebar:
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     with top_col1:
-        # KOMPAKTOWY NAGŁÓWEK: Tytuł (powiększony), filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
-        c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-        c_t.markdown("<h2 style='margin-top: -15px;'>📊 Dashboard</h2>", unsafe_allow_html=True)
-        account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True,
-                                   label_visibility="collapsed")
-        view_year = c_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
-                                  label_visibility="collapsed")
-        view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed")
+        st.title("Dashboard Performance")
+
+    filter_col1, filter_col2 = st.columns([1, 4])
+    account_filter = filter_col1.radio("📂 Filter by Account:", ["All", "Funded", "Evaluation"], horizontal=True)
 
     if all_trades:
         # Filtrowanie tablicy omijające Backtesty
@@ -325,17 +316,21 @@ if menu == "📊 Dashboard":
         else:
             st.info(f"Brak danych dla wybranego filtru: {account_filter}")
 
-        # Niewielki separator wizualny bez strat miejsca
-        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        st.divider()
+        st.subheader("Trading Calendar")
+        col_y, col_m, _ = st.columns([1, 1, 4])
+        view_year = col_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
+                                    label_visibility="collapsed")
+        view_month = col_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1,
+                                     label_visibility="collapsed")
 
         cal = calendar.monthcalendar(view_year, view_month)
 
         cols = st.columns(7)
         days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         for i, d in enumerate(days_header):
-            cols[i].markdown(
-                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.75em;'>{d}</b></center>",
-                unsafe_allow_html=True)
+            cols[i].markdown(f"<center><b style='color:{current_theme['text_secondary']}'>{d}</b></center>",
+                             unsafe_allow_html=True)
 
         for week in cal:
             ref_day = next((d for d in week if d != 0), None)
@@ -425,7 +420,7 @@ if menu == "📊 Dashboard":
                             if valid_trades_count > 0:
                                 b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                 b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                badge = f"<span style='font-size:0.65em;color:{b_txt};background:{b_bg};padding:0px 3px;border-radius:4px;'>{valid_trades_count}x</span>"
+                                badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades_count}x</span>"
 
                             if has_no_trade and day_pnl == 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
@@ -434,16 +429,16 @@ if menu == "📊 Dashboard":
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
                                     "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             elif day_pnl < 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                     "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             else:
-                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.85em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.75em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-3px;">{pnl_disp}</div></div>"""
+                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;line-height:1.2;">{pnl_disp}</div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         with cols[i].popover(label=" ", use_container_width=True):
@@ -483,7 +478,7 @@ if menu == "📊 Dashboard":
 # --- DAILY JOURNAL ---
 elif menu == "📝 Daily Journal":
     with top_col1:
-        st.markdown("<h2 style='margin-top: -15px;'>Daily Trade Entry</h2>", unsafe_allow_html=True)
+        st.title("Daily Trade Entry")
 
     if 'editing_index' not in st.session_state: st.session_state.editing_index = None
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None and not all_trades[
@@ -588,33 +583,21 @@ elif menu == "📝 Daily Journal":
 # --- BACKTESTING ---
 elif menu == "⏪ Backtesting":
     with top_col1:
-        bt_section_idx = 1 if st.session_state.get('bt_nav_section') == "Trade Entry" else 0
+        st.title("⏪ Backtesting")
 
-        # Obliczenie dat potrzebnych do górnego paska Backtest Dashboardu
-        bt_trades = [t for t in all_trades if t.get('is_backtest', True)]
-        df_bt = pd.DataFrame(bt_trades)
-        if not df_bt.empty:
-            df_bt['date'] = pd.to_datetime(df_bt['date'])
-            min_y = df_bt['date'].dt.year.min()
-            max_y = df_bt['date'].dt.year.max()
-        else:
-            min_y, max_y = 2024, 2025
-
-        c_t, c_r, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-        c_t.markdown("<h2 style='margin-top: -15px;'>⏪ Backtesting</h2>", unsafe_allow_html=True)
-        bt_menu = c_r.radio("Sekcja:", ["Dashboard", "Trade Entry"], horizontal=True, index=bt_section_idx,
-                            label_visibility="collapsed", key="bt_main_nav")
-        st.session_state.bt_nav_section = bt_menu
-
-        if bt_menu == "Dashboard":
-            view_year = c_y.selectbox("Year", range(min_y, max_y + 2), index=range(min_y, max_y + 2).index(
-                datetime.now().year) if datetime.now().year in range(min_y, max_y + 2) else 0,
-                                      label_visibility="collapsed", key="bt_cal_y")
-            view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1,
-                                       label_visibility="collapsed", key="bt_cal_m")
+    bt_section_idx = 1 if st.session_state.get('bt_nav_section') == "Trade Entry" else 0
+    bt_menu = st.radio("Sekcja:", ["Dashboard", "Trade Entry"], horizontal=True, index=bt_section_idx,
+                       key="bt_main_nav")
+    st.session_state.bt_nav_section = bt_menu
+    st.divider()
 
     if bt_menu == "Dashboard":
+        bt_trades = [t for t in all_trades if t.get('is_backtest', True)]
+        df_bt = pd.DataFrame(bt_trades)
+
         if not df_bt.empty:
+            df_bt['date'] = pd.to_datetime(df_bt['date'])
+
             total_pnl = df_bt['pnl'].sum()
             total_valid = len(df_bt[df_bt['direction'] != 'No Trade'])
 
@@ -643,19 +626,26 @@ elif menu == "⏪ Backtesting":
             pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
             c5.metric("Profit Factor", pf_display)
             c6.metric("Trades", total_valid)
-            c7.metric("Days", unique_days)
+            c7.metric("Days Backtested", unique_days)
 
             # --- BT CALENDAR ---
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+            st.divider()
+            st.subheader("Backtesting Calendar")
+            min_y = df_bt['date'].dt.year.min()
+            max_y = df_bt['date'].dt.year.max()
+            view_year = col_y.selectbox("Year", range(min_y, max_y + 2), index=range(min_y, max_y + 2).index(
+                datetime.now().year) if datetime.now().year in range(min_y, max_y + 2) else 0,
+                                        label_visibility="collapsed", key="bt_cal_y")
+            view_month = col_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1,
+                                         label_visibility="collapsed", key="bt_cal_m")
 
             cal = calendar.monthcalendar(view_year, view_month)
 
             cols = st.columns(7)
             days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             for i, d in enumerate(days_header):
-                cols[i].markdown(
-                    f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.75em;'>{d}</b></center>",
-                    unsafe_allow_html=True)
+                cols[i].markdown(f"<center><b style='color:{current_theme['text_secondary']}'>{d}</b></center>",
+                                 unsafe_allow_html=True)
 
             for week in cal:
                 ref_day = next((d for d in week if d != 0), None)
@@ -737,7 +727,7 @@ elif menu == "⏪ Backtesting":
                                 if valid_trades_count > 0:
                                     b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                     b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                    badge = f"<span style='font-size:0.65em;color:{b_txt};background:{b_bg};padding:0px 3px;border-radius:4px;'>{valid_trades_count}x</span>"
+                                    badge = f"<span style='font-size:0.8em;color:{b_txt};background:{b_bg};padding:2px 6px;border-radius:4px;'>{valid_trades_count}x</span>"
 
                                 if has_no_trade and day_pnl == 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
@@ -746,16 +736,16 @@ elif menu == "⏪ Backtesting":
                                     bg_c, bor_c, pnl_c, pnl_disp = (
                                         "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
                                         "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 elif day_pnl < 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
                                         "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                         "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 else:
-                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.85em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.75em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-3px;">{pnl_disp}</div></div>"""
+                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;line-height:1.2;">{pnl_disp}</div></div>"""
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             with cols[i].popover(label=" ", use_container_width=True):
@@ -890,7 +880,7 @@ elif menu == "⏪ Backtesting":
 # --- TRADES HISTORY ---
 elif menu == "📜 Trades History":
     with top_col1:
-        st.markdown("<h2 style='margin-top: -15px;'>Trade History</h2>", unsafe_allow_html=True)
+        st.title("Trade History")
 
     preset_date = st.session_state.get('history_filter_date')
     if preset_date:
