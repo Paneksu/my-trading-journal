@@ -1001,4 +1001,4 @@ elif menu == "📜 Trades History":
                         if t.get('ltf_desc'):
                             st.write(f"**LTF Notes:** {t['ltf_desc']}")
     else:
-        st.info("Brak tradów w historii.")w
+        st.info("Brak tradów w historii.")
