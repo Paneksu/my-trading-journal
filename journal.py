@@ -62,7 +62,7 @@ with top_col2:
         st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
         st.rerun()
 
-# --- INJECT CSS (Z KOMPRESJĄ DLA DASHBOARDU) ---
+# --- INJECT CSS (POWIĘKSZONE METRYKI I KOMPAKTOWY KALENDARZ) ---
 st.markdown(f"""
     <style>
     /* Ukrycie domyślnego nagłówka Streamlit (m.in. przycisku Fork i Menu) */
@@ -74,10 +74,10 @@ st.markdown(f"""
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
     [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
 
-    /* Kompresja kafelków Metrics */
-    div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 5px 10px !important; border-radius: 8px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
-    [data-testid="stMetricValue"] {{ font-size: 1.25rem !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
-    [data-testid="stMetricLabel"] {{ font-size: 0.8rem !important; color: {current_theme['text_primary']} !important; }}
+    /* POWIĘKSZONE I BARDZIEJ CZYTELNE KAFELKI METRICS */
+    div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 15px 20px !important; border-radius: 12px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
+    [data-testid="stMetricValue"] {{ font-size: 2.2rem !important; font-weight: bold !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
+    [data-testid="stMetricLabel"] {{ font-size: 1.1rem !important; color: {current_theme['text_secondary']} !important; }}
 
     h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
     .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
@@ -271,9 +271,9 @@ with st.sidebar:
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     with top_col1:
-        # KOMPAKTOWY NAGŁÓWEK: Tytuł, filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
+        # KOMPAKTOWY NAGŁÓWEK: Tytuł (powiększony), filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
         c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-        c_t.markdown("<h3 style='margin-top: -15px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
+        c_t.markdown("<h2 style='margin-top: -15px;'>📊 Dashboard</h2>", unsafe_allow_html=True)
         account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True,
                                    label_visibility="collapsed")
         view_year = c_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
@@ -483,7 +483,7 @@ if menu == "📊 Dashboard":
 # --- DAILY JOURNAL ---
 elif menu == "📝 Daily Journal":
     with top_col1:
-        st.markdown("<h3 style='margin-top: -10px;'>Daily Trade Entry</h3>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin-top: -15px;'>Daily Trade Entry</h2>", unsafe_allow_html=True)
 
     if 'editing_index' not in st.session_state: st.session_state.editing_index = None
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None and not all_trades[
@@ -601,7 +601,7 @@ elif menu == "⏪ Backtesting":
             min_y, max_y = 2024, 2025
 
         c_t, c_r, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-        c_t.markdown("<h3 style='margin-top: -15px;'>⏪ Backtesting</h3>", unsafe_allow_html=True)
+        c_t.markdown("<h2 style='margin-top: -15px;'>⏪ Backtesting</h2>", unsafe_allow_html=True)
         bt_menu = c_r.radio("Sekcja:", ["Dashboard", "Trade Entry"], horizontal=True, index=bt_section_idx,
                             label_visibility="collapsed", key="bt_main_nav")
         st.session_state.bt_nav_section = bt_menu
@@ -890,7 +890,7 @@ elif menu == "⏪ Backtesting":
 # --- TRADES HISTORY ---
 elif menu == "📜 Trades History":
     with top_col1:
-        st.markdown("<h3 style='margin-top: -10px;'>Trade History</h3>", unsafe_allow_html=True)
+        st.markdown("<h2 style='margin-top: -15px;'>Trade History</h2>", unsafe_allow_html=True)
 
     preset_date = st.session_state.get('history_filter_date')
     if preset_date:
