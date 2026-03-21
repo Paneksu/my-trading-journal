@@ -89,12 +89,12 @@ st.markdown(f"""
     button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
     button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    /* Kompaktowe kafelki dni w Kalendarzu - zmniejszona wysokość do 75px */
-    .day-card {{ height: 75px; width: 100%; border-radius: 8px; padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
-    .weekly-summary-title {{ font-size: 0.65em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
-    .weekly-summary-value {{ font-size: 0.95em; font-weight: bold; line-height: 1.1; text-align: center; }}
+    /* Kompaktowe kafelki dni w Kalendarzu - ZNACZNIE MNIEJSZE (55px) */
+    .day-card {{ height: 55px; width: 100%; border-radius: 8px; padding: 2px 4px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
+    .weekly-summary-title {{ font-size: 0.55em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
+    .weekly-summary-value {{ font-size: 0.8em; font-weight: bold; line-height: 1.1; text-align: center; }}
 
-    div[data-testid="stPopover"] > button {{ height: 75px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 8px !important; color: transparent !important; margin-top: -75px !important; position: relative; z-index: 5; }}
+    div[data-testid="stPopover"] > button {{ height: 55px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 8px !important; color: transparent !important; margin-top: -55px !important; position: relative; z-index: 5; }}
     div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 1px solid {current_theme['accent']} !important; }}
 
     div[data-testid="column"] {{ padding: 2px !important; }}
@@ -334,7 +334,7 @@ if menu == "📊 Dashboard":
         days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         for i, d in enumerate(days_header):
             cols[i].markdown(
-                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.85em;'>{d}</b></center>",
+                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.75em;'>{d}</b></center>",
                 unsafe_allow_html=True)
 
         for week in cal:
@@ -425,7 +425,7 @@ if menu == "📊 Dashboard":
                             if valid_trades_count > 0:
                                 b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                 b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                badge = f"<span style='font-size:0.75em;color:{b_txt};background:{b_bg};padding:1px 4px;border-radius:4px;'>{valid_trades_count}x</span>"
+                                badge = f"<span style='font-size:0.65em;color:{b_txt};background:{b_bg};padding:0px 3px;border-radius:4px;'>{valid_trades_count}x</span>"
 
                             if has_no_trade and day_pnl == 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
@@ -434,16 +434,16 @@ if menu == "📊 Dashboard":
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
                                     "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             elif day_pnl < 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                     "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             else:
-                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
+                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.85em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.75em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-3px;">{pnl_disp}</div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         with cols[i].popover(label=" ", use_container_width=True):
@@ -654,7 +654,7 @@ elif menu == "⏪ Backtesting":
             days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             for i, d in enumerate(days_header):
                 cols[i].markdown(
-                    f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.85em;'>{d}</b></center>",
+                    f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.75em;'>{d}</b></center>",
                     unsafe_allow_html=True)
 
             for week in cal:
@@ -737,7 +737,7 @@ elif menu == "⏪ Backtesting":
                                 if valid_trades_count > 0:
                                     b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
                                     b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                    badge = f"<span style='font-size:0.75em;color:{b_txt};background:{b_bg};padding:1px 4px;border-radius:4px;'>{valid_trades_count}x</span>"
+                                    badge = f"<span style='font-size:0.65em;color:{b_txt};background:{b_bg};padding:0px 3px;border-radius:4px;'>{valid_trades_count}x</span>"
 
                                 if has_no_trade and day_pnl == 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
@@ -746,16 +746,16 @@ elif menu == "⏪ Backtesting":
                                     bg_c, bor_c, pnl_c, pnl_disp = (
                                         "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
                                         "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 elif day_pnl < 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
                                         "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                         "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 else:
-                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
+                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.85em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.75em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-3px;">{pnl_disp}</div></div>"""
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             with cols[i].popover(label=" ", use_container_width=True):
@@ -1001,4 +1001,4 @@ elif menu == "📜 Trades History":
                         if t.get('ltf_desc'):
                             st.write(f"**LTF Notes:** {t['ltf_desc']}")
     else:
-        st.info("Brak tradów w historii.")
+        st.info("Brak tradów w historii.")w
