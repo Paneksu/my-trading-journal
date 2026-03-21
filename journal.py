@@ -22,7 +22,7 @@ if st.session_state.get('navigate_to_history'):
 if 'bt_nav_section' not in st.session_state:
     st.session_state.bt_nav_section = "Dashboard"
 
-# --- DEFINICJA KOLORÓW DLA MOTYWÓW (ROZJAŚNIONE) ---
+# --- DEFINICJA KOLORÓW DLA MOTYWÓW ---
 themes = {
     "Dark": {
         "bg_app": "#16161e",
@@ -54,6 +54,26 @@ themes = {
 
 current_theme = themes[st.session_state.theme]
 
+
+def get_cal_colors(theme):
+    if theme == "Dark":
+        return {
+            "gray_bg": "rgba(142, 142, 147, 0.05)", "gray_bor": "#3a3a4a", "gray_txt": "#8e8e93",
+            "green_bg": "rgba(0, 255, 127, 0.1)", "green_bor": "rgba(0, 255, 127, 0.4)", "green_txt": "#00ff7f",
+            "red_bg": "rgba(255, 69, 58, 0.1)", "red_bor": "rgba(255, 69, 58, 0.4)", "red_txt": "#ff453a",
+            "badge_bg": "rgba(255,255,255,0.1)", "badge_txt": "#eaeaea"
+        }
+    else:
+        return {
+            "gray_bg": "rgba(142, 142, 147, 0.05)", "gray_bor": "#d2dbe3", "gray_txt": "#8e8e93",
+            "green_bg": "rgba(34, 197, 94, 0.1)", "green_bor": "rgba(34, 197, 94, 0.4)", "green_txt": "#15803d",
+            "red_bg": "rgba(239, 68, 68, 0.1)", "red_bor": "rgba(239, 68, 68, 0.4)", "red_txt": "#b91c1c",
+            "badge_bg": "rgba(0,0,0,0.05)", "badge_txt": "#202538"
+        }
+
+
+cal_colors = get_cal_colors(st.session_state.theme)
+
 # --- UI: PRZYCISK ZMIANY MOTYWU ---
 top_col1, top_col2 = st.columns([20, 1])
 with top_col2:
@@ -62,19 +82,19 @@ with top_col2:
         st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
         st.rerun()
 
-# --- INJECT CSS (POWIĘKSZONE METRYKI I KOMPAKTOWY KALENDARZ) ---
+# --- INJECT CSS ---
 st.markdown(f"""
     <style>
-    /* Ukrycie domyślnego nagłówka Streamlit (m.in. przycisku Fork i Menu) */
+    /* Ukrycie domyślnego nagłówka Streamlit */
     [data-testid="stHeader"] {{ display: none !important; }}
 
-    /* Agresywna redukcja pustych przestrzeni - kompresja widoku na 1 stronę */
+    /* Optymalizacja przestrzeni na ekranie */
     .block-container {{ padding-top: 1rem; padding-bottom: 0rem; max-width: 98%; }}
 
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
     [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
 
-    /* POWIĘKSZONE I BARDZIEJ CZYTELNE KAFELKI METRICS */
+    /* POWIĘKSZONE I CZYTELNE KAFELKI METRICS */
     div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 15px 20px !important; border-radius: 12px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
     [data-testid="stMetricValue"] {{ font-size: 2.2rem !important; font-weight: bold !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
     [data-testid="stMetricLabel"] {{ font-size: 1.1rem !important; color: {current_theme['text_secondary']} !important; }}
@@ -87,14 +107,46 @@ st.markdown(f"""
     [data-testid="stImage"] {{ overflow: visible !important; position: relative !important; }}
     button[title="View fullscreen"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: 2.5rem !important; height: 2.5rem !important; right: 0.5rem !important; top: 0.5rem !important; z-index: 999999 !important; cursor: pointer !important; border-radius: 8px !important; align-items: center !important; justify-content: center !important; transition: background-color 0.2s !important; }}
     button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
-    button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    /* Kompaktowe kafelki dni w Kalendarzu - ZNACZNIE MNIEJSZE (55px) */
-    .day-card {{ height: 55px; width: 100%; border-radius: 8px; padding: 2px 4px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
-    .weekly-summary-title {{ font-size: 0.55em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
-    .weekly-summary-value {{ font-size: 0.8em; font-weight: bold; line-height: 1.1; text-align: center; }}
+    /* --- NOWOCZESNY KALENDARZ OD ZERA --- */
+    .modern-cal-day {{
+        height: 85px;
+        width: 100%;
+        border-radius: 12px;
+        padding: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-sizing: border-box;
+    }}
+    .modern-cal-day:hover {{
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }}
+    .mc-header {{ display: flex; justify-content: space-between; align-items: flex-start; }}
+    .mc-badge {{ font-size: 0.7em; font-weight: bold; padding: 2px 6px; border-radius: 6px; }}
+    .mc-day-num {{ font-size: 1.05em; font-weight: bold; opacity: 0.9; margin-top: -2px; }}
+    .mc-body {{ display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 2px; }}
+    .mc-pnl {{ font-size: 0.95em; font-weight: bold; letter-spacing: 0.5px; }}
+    .mc-rr {{ font-size: 0.8em; font-weight: 500; opacity: 0.85; margin-top: 2px; }}
 
-    div[data-testid="stPopover"] > button {{ height: 55px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 8px !important; color: transparent !important; margin-top: -55px !important; position: relative; z-index: 5; }}
+    .modern-cal-week {{
+        height: 85px;
+        width: 100%;
+        border-radius: 12px;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 2px dashed;
+    }}
+    .mc-week-title {{ font-size: 0.65em; text-transform: uppercase; font-weight: bold; opacity: 0.7; margin-bottom: 4px; }}
+
+    /* Hakowanie Popovera pod nowy Kalendarz */
+    div[data-testid="stPopover"] > button {{ height: 85px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -85px !important; position: relative; z-index: 5; }}
     div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 1px solid {current_theme['accent']} !important; }}
 
     div[data-testid="column"] {{ padding: 2px !important; }}
@@ -271,7 +323,7 @@ with st.sidebar:
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     with top_col1:
-        # KOMPAKTOWY NAGŁÓWEK: Tytuł (powiększony), filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
+        # KOMPAKTOWY NAGŁÓWEK
         c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
         c_t.markdown("<h2 style='margin-top: -15px;'>📊 Dashboard</h2>", unsafe_allow_html=True)
         account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True,
@@ -281,7 +333,6 @@ if menu == "📊 Dashboard":
         view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed")
 
     if all_trades:
-        # Filtrowanie tablicy omijające Backtesty
         base_trades = [t for t in all_trades if not t.get('is_backtest', False)]
 
         if account_filter == "All":
@@ -318,23 +369,21 @@ if menu == "📊 Dashboard":
             c2.metric("Win Rate", f"{wr:.1f}%")
             c3.metric("Avg Win", f"{avg_win:+.1f} $")
             c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
-
             pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
             c5.metric("Profit Factor", pf_display)
             c6.metric("Trades", total_valid)
         else:
             st.info(f"Brak danych dla wybranego filtru: {account_filter}")
 
-        # Niewielki separator wizualny bez strat miejsca
-        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
         cal = calendar.monthcalendar(view_year, view_month)
 
-        cols = st.columns(7)
-        days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
+        days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "📊 Wk"]
         for i, d in enumerate(days_header):
             cols[i].markdown(
-                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.75em;'>{d}</b></center>",
+                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.85em;'>{d}</b></center>",
                 unsafe_allow_html=True)
 
         for week in cal:
@@ -352,131 +401,105 @@ if menu == "📊 Dashboard":
                 weekly_pnl = sum(t['pnl'] for t in week_trades)
                 weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
 
-            cols = st.columns(7)
+            cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
             for i, day in enumerate(week):
-                if i == 6:  # Niedziela
-                    bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
-                        'text_primary'], current_theme['text_secondary']
-                    if weekly_pnl > 0:
-                        bg_c, bor_c, pnl_c = (
-                            "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                            "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                            "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
-                    elif weekly_pnl < 0:
-                        bg_c, bor_c, pnl_c = (
-                            "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                            "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                            "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
-
-                    card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
-                    cols[i].markdown(card_html, unsafe_allow_html=True)
-
-                    curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
-                        week_end_date if ref_day else None)
-                    with cols[i].popover(label=" ", use_container_width=True):
-                        if curr_date_sunday:
-                            st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
-                            st.button(f"🔎 Go to History ({curr_date_sunday})", key=f"gth_sun_{i}_{day}_{view_month}",
-                                      use_container_width=True, on_click=go_to_history_for_day,
-                                      args=(curr_date_sunday,))
-                            st.divider()
-                            sunday_trades = [t for t in filtered_trades if t['date'] == str(curr_date_sunday)]
-                            if sunday_trades:
-                                for t in sunday_trades:
-                                    with st.container():
-                                        h1, h2 = st.columns([3, 1])
-                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                    unsafe_allow_html=True)
-                                        st.caption(
-                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
-                                        if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                        st.markdown("---")
-                                        c_htf, c_ltf = st.columns(2)
-                                        with c_htf:
-                                            st.markdown("#### 🏛️ HTF Links")
-                                            for l in t.get('htf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        with c_ltf:
-                                            st.markdown("#### ⚡ LTF Links")
-                                            for l in t.get('ltf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        st.divider()
-                            else:
-                                st.write("Brak tradów.")
-                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
+                if day == 0:
+                    cols[i].write("")
                 else:
-                    if day == 0:
-                        cols[i].write("")
-                    else:
-                        curr_date = date(view_year, view_month, day)
-                        day_trades = [t for t in filtered_trades if t['date'] == str(curr_date)]
-                        day_pnl = sum([t['pnl'] for t in day_trades])
-                        day_rr = sum([t.get('rr', 0.0) for t in day_trades])
-                        has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                        valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+                    curr_date = date(view_year, view_month, day)
+                    day_trades = [t for t in filtered_trades if t['date'] == str(curr_date)]
+                    day_pnl = sum([t['pnl'] for t in day_trades])
+                    day_rr = sum([t.get('rr', 0.0) for t in day_trades])
+                    has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
+                    valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
-                        bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
-                            'text_primary'], current_theme['text_secondary']
-                        pnl_disp, badge = "", ""
+                    if day_trades:
+                        if valid_trades_count > 0:
+                            badge = f"<div class='mc-badge' style='color:{cal_colors['badge_txt']}; background:{cal_colors['badge_bg']};'>{valid_trades_count}x</div>"
+                        else:
+                            badge = "<div></div>"
 
-                        if day_trades:
-                            if valid_trades_count > 0:
-                                b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
-                                b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                badge = f"<span style='font-size:0.65em;color:{b_txt};background:{b_bg};padding:0px 3px;border-radius:4px;'>{valid_trades_count}x</span>"
+                        if has_no_trade and day_pnl == 0:
+                            bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
+                            pnl_disp, rr_disp = "⚪ No Trade", ""
+                        elif day_pnl > 0:
+                            bg_c, bor_c, pnl_c = cal_colors['green_bg'], cal_colors['green_bor'], cal_colors[
+                                'green_txt']
+                            pnl_disp, rr_disp = f"🟢 +{day_pnl:.1f} $", f"RR: {day_rr:.2f}"
+                        elif day_pnl < 0:
+                            bg_c, bor_c, pnl_c = cal_colors['red_bg'], cal_colors['red_bor'], cal_colors['red_txt']
+                            pnl_disp, rr_disp = f"🔴 {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
+                        else:
+                            bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
+                            pnl_disp, rr_disp = f"⚪ {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
 
-                            if has_no_trade and day_pnl == 0:
-                                bg_c, bor_c, pnl_c, pnl_disp = (
-                                    "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
-                            elif day_pnl > 0:
-                                bg_c, bor_c, pnl_c, pnl_disp = (
-                                    "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
-                            elif day_pnl < 0:
-                                bg_c, bor_c, pnl_c, pnl_disp = (
-                                    "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
-                            else:
-                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
-
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.85em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.75em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-3px;">{pnl_disp}</div></div>"""
+                        card_html = f"""
+                        <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
+                            <div class="mc-header">
+                                {badge}
+                                <div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div>
+                            </div>
+                            <div class="mc-body">
+                                <div class="mc-pnl" style="color: {pnl_c};">{pnl_disp}</div>
+                                <div class="mc-rr" style="color: {pnl_c};">{rr_disp}</div>
+                            </div>
+                        </div>
+                        """
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         with cols[i].popover(label=" ", use_container_width=True):
-                            if day_trades:
-                                st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                                st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
-                                          use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
-                                st.markdown(
-                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                                st.divider()
-                                for t in day_trades:
-                                    with st.container():
-                                        h1, h2 = st.columns([3, 1])
-                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                    unsafe_allow_html=True)
-                                        st.caption(
-                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
-                                        if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                        st.markdown("---")
-                                        c_htf, c_ltf = st.columns(2)
-                                        with c_htf:
-                                            st.markdown("#### 🏛️ HTF Links")
-                                            for l in t.get('htf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        with c_ltf:
-                                            st.markdown("#### ⚡ LTF Links")
-                                            for l in t.get('ltf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        st.divider()
-                            else:
-                                st.write("Brak wpisów.")
+                            st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
+                            st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
+                                      use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
+                            st.markdown(
+                                f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
+                            st.divider()
+                            for t in day_trades:
+                                with st.container():
+                                    h1, h2 = st.columns([3, 1])
+                                    h1.markdown(f"### {t['asset']} ({t['direction']})")
+                                    pnl_color = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
+                                    h2.markdown(f"<h3 style='color:{pnl_color}'>{t['pnl']:+.1f} $</h3>",
+                                                unsafe_allow_html=True)
+                                    st.caption(
+                                        f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
+                                    if t.get('notes'): st.info(f"📝 {t['notes']}")
+                                    st.markdown("---")
+                                    c_htf, c_ltf = st.columns(2)
+                                    with c_htf:
+                                        st.markdown("#### 🏛️ HTF Links")
+                                        for l in t.get('htf_links', []):
+                                            if "http" in l: st.image(l.strip(), use_container_width=True)
+                                    with c_ltf:
+                                        st.markdown("#### ⚡ LTF Links")
+                                        for l in t.get('ltf_links', []):
+                                            if "http" in l: st.image(l.strip(), use_container_width=True)
+                                    st.divider()
+                    else:
+                        bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
+                        card_html = f"""
+                        <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
+                            <div class="mc-header"><div></div><div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div></div>
+                        </div>
+                        """
+                        cols[i].markdown(card_html, unsafe_allow_html=True)
+
+            # --- KOLUMNA 7: WEEKLY SUMMARY ---
+            w_bg = cal_colors['green_bg'] if weekly_pnl > 0 else (
+                cal_colors['red_bg'] if weekly_pnl < 0 else cal_colors['gray_bg'])
+            w_bor = cal_colors['green_bor'] if weekly_pnl > 0 else (
+                cal_colors['red_bor'] if weekly_pnl < 0 else cal_colors['gray_bor'])
+            w_txt = cal_colors['green_txt'] if weekly_pnl > 0 else (
+                cal_colors['red_txt'] if weekly_pnl < 0 else cal_colors['gray_txt'])
+
+            wk_html = f"""
+            <div class="modern-cal-week" style="background: {w_bg}; border-color: {w_bor};">
+                <div class="mc-week-title" style="color: {current_theme['text_secondary']};">Weekly Summary</div>
+                <div class="mc-pnl" style="color: {w_txt};">{weekly_pnl:+.1f} $</div>
+                <div class="mc-rr" style="color: {w_txt};">RR: {weekly_rr:.2f}</div>
+            </div>
+            """
+            cols[7].markdown(wk_html, unsafe_allow_html=True)
     else:
         st.info("Brak danych.")
 
@@ -489,7 +512,6 @@ elif menu == "📝 Daily Journal":
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None and not all_trades[
         st.session_state.editing_index].get('is_backtest') else None
 
-    # Ładowanie confluences do tymczasowej listy przy wchodzeniu w tryb edycji
     if 'dj_current_edit_idx' not in st.session_state or st.session_state.dj_current_edit_idx != st.session_state.editing_index:
         st.session_state.dj_current_edit_idx = st.session_state.editing_index
         st.session_state.dj_temp_conf = curr.get('confluences', []).copy() if curr else []
@@ -569,7 +591,6 @@ elif menu == "📝 Daily Journal":
             "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
             "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
             "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
-            # Zachowujemy puste stare pola by nie zepsuć bazy
             "general_notes": "", "mood": "", "interfered": "No", "interfered_how": "",
             "htf_desc": "", "htf_keypoints": "", "ltf_desc": "", "ltf_keypoints": ""
         }
@@ -590,7 +611,6 @@ elif menu == "⏪ Backtesting":
     with top_col1:
         bt_section_idx = 1 if st.session_state.get('bt_nav_section') == "Trade Entry" else 0
 
-        # Obliczenie dat potrzebnych do górnego paska Backtest Dashboardu
         bt_trades = [t for t in all_trades if t.get('is_backtest', True)]
         df_bt = pd.DataFrame(bt_trades)
         if not df_bt.empty:
@@ -646,15 +666,15 @@ elif menu == "⏪ Backtesting":
             c7.metric("Days", unique_days)
 
             # --- BT CALENDAR ---
-            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
 
             cal = calendar.monthcalendar(view_year, view_month)
 
-            cols = st.columns(7)
-            days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
+            days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "📊 Wk"]
             for i, d in enumerate(days_header):
                 cols[i].markdown(
-                    f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.75em;'>{d}</b></center>",
+                    f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.85em;'>{d}</b></center>",
                     unsafe_allow_html=True)
 
             for week in cal:
@@ -672,116 +692,99 @@ elif menu == "⏪ Backtesting":
                     weekly_pnl = sum(t['pnl'] for t in week_trades)
                     weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
 
-                cols = st.columns(7)
+                cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
                 for i, day in enumerate(week):
-                    if i == 6:
-                        bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
-                            'text_primary'], current_theme['text_secondary']
-                        if weekly_pnl > 0:
-                            bg_c, bor_c, pnl_c = (
-                                "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
-                        elif weekly_pnl < 0:
-                            bg_c, bor_c, pnl_c = (
-                                "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
-
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
-                        cols[i].markdown(card_html, unsafe_allow_html=True)
-
-                        curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
-                            week_end_date if ref_day else None)
-                        with cols[i].popover(label=" ", use_container_width=True):
-                            if curr_date_sunday:
-                                st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
-                                st.button(f"🔎 Go to History ({curr_date_sunday})",
-                                          key=f"gth_sun_bt_{i}_{day}_{view_month}", use_container_width=True,
-                                          on_click=go_to_history_for_day, args=(curr_date_sunday,))
-                                st.divider()
-                                sunday_trades = [t for t in bt_trades if t['date'] == str(curr_date_sunday)]
-                                if sunday_trades:
-                                    for t in sunday_trades:
-                                        with st.container():
-                                            h1, h2 = st.columns([3, 1])
-                                            h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                            pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                            h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                        unsafe_allow_html=True)
-                                            st.caption(
-                                                f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
-                                            if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                            st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
-                                            st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
-                                            st.divider()
-                                else:
-                                    st.write("Brak tradów.")
-                                    st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
+                    if day == 0:
+                        cols[i].write("")
                     else:
-                        if day == 0:
-                            cols[i].write("")
-                        else:
-                            curr_date = date(view_year, view_month, day)
-                            day_trades = [t for t in bt_trades if t['date'] == str(curr_date)]
-                            day_pnl = sum([t['pnl'] for t in day_trades])
-                            day_rr = sum([t.get('rr', 0.0) for t in day_trades])
-                            has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                            valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+                        curr_date = date(view_year, view_month, day)
+                        day_trades = [t for t in bt_trades if t['date'] == str(curr_date)]
+                        day_pnl = sum([t['pnl'] for t in day_trades])
+                        day_rr = sum([t.get('rr', 0.0) for t in day_trades])
+                        has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
+                        valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
-                            bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], \
-                            current_theme['text_primary'], current_theme['text_secondary']
-                            pnl_disp, badge = "", ""
+                        if day_trades:
+                            if valid_trades_count > 0:
+                                badge = f"<div class='mc-badge' style='color:{cal_colors['badge_txt']}; background:{cal_colors['badge_bg']};'>{valid_trades_count}x</div>"
+                            else:
+                                badge = "<div></div>"
 
-                            if day_trades:
-                                if valid_trades_count > 0:
-                                    b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
-                                    b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
-                                    badge = f"<span style='font-size:0.65em;color:{b_txt};background:{b_bg};padding:0px 3px;border-radius:4px;'>{valid_trades_count}x</span>"
+                            if has_no_trade and day_pnl == 0:
+                                bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors[
+                                    'gray_txt']
+                                pnl_disp, rr_disp = "⚪ No Trade", ""
+                            elif day_pnl > 0:
+                                bg_c, bor_c, pnl_c = cal_colors['green_bg'], cal_colors['green_bor'], cal_colors[
+                                    'green_txt']
+                                pnl_disp, rr_disp = f"🟢 +{day_pnl:.1f} $", f"RR: {day_rr:.2f}"
+                            elif day_pnl < 0:
+                                bg_c, bor_c, pnl_c = cal_colors['red_bg'], cal_colors['red_bor'], cal_colors['red_txt']
+                                pnl_disp, rr_disp = f"🔴 {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
+                            else:
+                                bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors[
+                                    'gray_txt']
+                                pnl_disp, rr_disp = f"⚪ {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
 
-                                if has_no_trade and day_pnl == 0:
-                                    bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
-                                elif day_pnl > 0:
-                                    bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
-                                elif day_pnl < 0:
-                                    bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
-                                else:
-                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.75em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
-
-                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.85em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.75em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-3px;">{pnl_disp}</div></div>"""
+                            card_html = f"""
+                            <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
+                                <div class="mc-header">
+                                    {badge}
+                                    <div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div>
+                                </div>
+                                <div class="mc-body">
+                                    <div class="mc-pnl" style="color: {pnl_c};">{pnl_disp}</div>
+                                    <div class="mc-rr" style="color: {pnl_c};">{rr_disp}</div>
+                                </div>
+                            </div>
+                            """
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             with cols[i].popover(label=" ", use_container_width=True):
-                                if day_trades:
-                                    st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                                    st.button(f"🔎 Go to History ({curr_date})", key=f"gth_bt_{curr_date}",
-                                              use_container_width=True, on_click=go_to_history_for_day,
-                                              args=(curr_date,))
-                                    st.markdown(
-                                        f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                                    st.divider()
-                                    for t in day_trades:
-                                        with st.container():
-                                            h1, h2 = st.columns([3, 1])
-                                            h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                            pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                            h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                        unsafe_allow_html=True)
-                                            st.caption(
-                                                f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
-                                            if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                            st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
-                                            st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
-                                            st.divider()
-                                else:
-                                    st.write("Brak wpisów.")
+                                st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
+                                st.button(f"🔎 Go to History ({curr_date})", key=f"gth_bt_{curr_date}",
+                                          use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
+                                st.markdown(
+                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
+                                st.divider()
+                                for t in day_trades:
+                                    with st.container():
+                                        h1, h2 = st.columns([3, 1])
+                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
+                                        pnl_color = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
+                                        h2.markdown(f"<h3 style='color:{pnl_color}'>{t['pnl']:+.1f} $</h3>",
+                                                    unsafe_allow_html=True)
+                                        st.caption(
+                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
+                                        if t.get('notes'): st.info(f"📝 {t['notes']}")
+                                        st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
+                                        st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
+                                        st.divider()
+                        else:
+                            bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
+                            card_html = f"""
+                            <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
+                                <div class="mc-header"><div></div><div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div></div>
+                            </div>
+                            """
+                            cols[i].markdown(card_html, unsafe_allow_html=True)
+
+                # --- KOLUMNA 7: WEEKLY SUMMARY ---
+                w_bg = cal_colors['green_bg'] if weekly_pnl > 0 else (
+                    cal_colors['red_bg'] if weekly_pnl < 0 else cal_colors['gray_bg'])
+                w_bor = cal_colors['green_bor'] if weekly_pnl > 0 else (
+                    cal_colors['red_bor'] if weekly_pnl < 0 else cal_colors['gray_bor'])
+                w_txt = cal_colors['green_txt'] if weekly_pnl > 0 else (
+                    cal_colors['red_txt'] if weekly_pnl < 0 else cal_colors['gray_txt'])
+
+                wk_html = f"""
+                <div class="modern-cal-week" style="background: {w_bg}; border-color: {w_bor};">
+                    <div class="mc-week-title" style="color: {current_theme['text_secondary']};">Weekly Summary</div>
+                    <div class="mc-pnl" style="color: {w_txt};">{weekly_pnl:+.1f} $</div>
+                    <div class="mc-rr" style="color: {w_txt};">RR: {weekly_rr:.2f}</div>
+                </div>
+                """
+                cols[7].markdown(wk_html, unsafe_allow_html=True)
         else:
             st.info("Brak danych z Backtestingu.")
 
@@ -951,7 +954,6 @@ elif menu == "📜 Trades History":
                     f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} ${acc_label}"):
                 st.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,))
 
-                # Ujednolicony podgląd dla nowego formatu Daily Journal oraz Backtesting
                 if t.get('is_backtest') or t.get('notes') or t.get('confluences'):
                     if t.get('notes'): st.info(f"**Notes:** {t['notes']}")
                     cm1, cm2 = st.columns(2)
@@ -972,7 +974,6 @@ elif menu == "📜 Trades History":
                         for l in t.get('ltf_links', []):
                             if "http" in l: st.image(l.strip(), use_container_width=True)
 
-                # Kompatybilność wsteczna - zachowujemy podgląd dla starych wpisów przed zmianami
                 if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
                     st.markdown("---")
                     if t.get('general_notes'): st.info(f"**General Notes:** {t['general_notes']}")
