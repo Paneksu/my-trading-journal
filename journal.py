@@ -1157,10 +1157,17 @@ elif menu == "📓 Trade Notes":
         is_bt_filter = True if notes_type == "Backtesting" else False
         filtered_trades = [t for t in all_trades if t.get('is_backtest', False) == is_bt_filter]
 
-        # Odrzucamy puste wpisy (brak notatek, błędów i konfluencji)
-        trades_with_notes = [t for t in filtered_trades if
-                             str(t.get('notes', '')).strip() or str(t.get('model_mistakes', '')).strip() or str(
-                                 t.get('mental_mistakes', '')).strip() or t.get('confluences')]
+        # Odrzucamy puste wpisy (sprawdzamy zarówno nowe jak i STARE pola notatek)
+        trades_with_notes = [
+            t for t in filtered_trades
+            if str(t.get('notes', '')).strip()
+               or str(t.get('model_mistakes', '')).strip()
+               or str(t.get('mental_mistakes', '')).strip()
+               or t.get('confluences')
+               or str(t.get('general_notes', '')).strip()
+               or str(t.get('htf_desc', '')).strip()
+               or str(t.get('ltf_desc', '')).strip()
+        ]
 
         # Sortowanie od najnowszych
         trades_with_notes = sorted(trades_with_notes, key=lambda x: x.get('date', ''), reverse=True)
@@ -1178,8 +1185,13 @@ elif menu == "📓 Trade Notes":
                         f"**PnL:** <span style='color:{pnl_c}; font-weight:bold;'>{float(t.get('pnl', 0)):+.1f} $</span> &nbsp;|&nbsp; **RR:** {t.get('rr', 0.0)}",
                         unsafe_allow_html=True)
 
+                    # Nowe notatki
                     if str(t.get('notes', '')).strip():
                         st.info(f"**📝 Notes:**\n{t['notes']}")
+
+                    # Stare notatki (General Notes)
+                    if str(t.get('general_notes', '')).strip():
+                        st.info(f"**📝 General Notes:**\n{t['general_notes']}")
 
                     cm1, cm2 = st.columns(2)
                     if str(t.get('model_mistakes', '')).strip():
@@ -1189,6 +1201,14 @@ elif menu == "📓 Trade Notes":
 
                     if t.get('confluences'):
                         st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
+
+                    # Stare notatki (HTF/LTF)
+                    if str(t.get('htf_desc', '')).strip() or str(t.get('ltf_desc', '')).strip():
+                        ch1, ch2 = st.columns(2)
+                        if str(t.get('htf_desc', '')).strip():
+                            ch1.write(f"**🏛️ HTF Notes:** {t['htf_desc']}")
+                        if str(t.get('ltf_desc', '')).strip():
+                            ch2.write(f"**⚡ LTF Notes:** {t['ltf_desc']}")
 
                     st.markdown("<hr style='border-color: " + current_theme['border'] + ";'>", unsafe_allow_html=True)
         else:
