@@ -260,8 +260,8 @@ def back_to_dashboard():
 with st.sidebar:
     st.title("📘 NQPaneksu Journal")
     menu = st.radio("MAIN MENU",
-                    ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar"],
-                    key="menu_nav")
+                    ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
+                     "📓 Trade Notes"], key="menu_nav")
     st.divider()
     if st.button("🗑️ Delete Last Entry"):
         if st.session_state.all_trades:
@@ -1145,3 +1145,53 @@ elif menu == "🗓️ Yearly Calendar":
                         unsafe_allow_html=True)
     else:
         st.info("Brak danych.")
+
+# --- TRADE NOTES ---
+elif menu == "📓 Trade Notes":
+    with top_col1:
+        st.markdown("<h3 style='margin-top: -10px;'>📓 Trade Notes</h3>", unsafe_allow_html=True)
+
+    notes_type = st.radio("Wybierz typ wpisów:", ["Normalne", "Backtesting"], horizontal=True)
+
+    if all_trades:
+        is_bt_filter = True if notes_type == "Backtesting" else False
+        filtered_trades = [t for t in all_trades if t.get('is_backtest', False) == is_bt_filter]
+
+        # Odrzucamy puste wpisy (brak notatek, błędów i konfluencji)
+        trades_with_notes = [t for t in filtered_trades if
+                             str(t.get('notes', '')).strip() or str(t.get('model_mistakes', '')).strip() or str(
+                                 t.get('mental_mistakes', '')).strip() or t.get('confluences')]
+
+        # Sortowanie od najnowszych
+        trades_with_notes = sorted(trades_with_notes, key=lambda x: x.get('date', ''), reverse=True)
+
+        st.divider()
+        if trades_with_notes:
+            st.write(f"Wyświetlam **{len(trades_with_notes)}** wpisów z notatkami.")
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+
+            for t in trades_with_notes:
+                with st.container():
+                    pnl_c = "green" if float(t.get('pnl', 0)) > 0 else ("red" if float(t.get('pnl', 0)) < 0 else "gray")
+                    st.markdown(f"#### 📅 {t.get('date')} | {t.get('asset')} ({t.get('direction', '-')})")
+                    st.markdown(
+                        f"**PnL:** <span style='color:{pnl_c}; font-weight:bold;'>{float(t.get('pnl', 0)):+.1f} $</span> &nbsp;|&nbsp; **RR:** {t.get('rr', 0.0)}",
+                        unsafe_allow_html=True)
+
+                    if str(t.get('notes', '')).strip():
+                        st.info(f"**📝 Notes:**\n{t['notes']}")
+
+                    cm1, cm2 = st.columns(2)
+                    if str(t.get('model_mistakes', '')).strip():
+                        cm1.error(f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
+                    if str(t.get('mental_mistakes', '')).strip():
+                        cm2.warning(f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
+
+                    if t.get('confluences'):
+                        st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
+
+                    st.markdown("<hr style='border-color: " + current_theme['border'] + ";'>", unsafe_allow_html=True)
+        else:
+            st.info(f"Brak notatek dla kategorii: {notes_type}.")
+    else:
+        st.info("Brak danych w dzienniku.")
