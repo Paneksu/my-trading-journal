@@ -83,11 +83,11 @@ st.markdown(f"""
     button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
     button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    .day-card {{ height: 80px; width: 100%; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
+    .day-card {{ height: 95px; width: 100%; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
     .weekly-summary-title {{ font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
-    .weekly-summary-value {{ font-size: 1.1em; font-weight: bold; }}
+    .weekly-summary-value {{ font-size: 1.1em; font-weight: bold; line-height: 1.2; }}
 
-    div[data-testid="stPopover"] > button {{ height: 80px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -80px !important; position: relative; z-index: 5; }}
+    div[data-testid="stPopover"] > button {{ height: 95px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -95px !important; position: relative; z-index: 5; }}
     div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 2px solid {current_theme['accent']} !important; }}
     div[data-testid="column"] {{ padding: 2px !important; }}
 
@@ -332,6 +332,7 @@ if menu == "📊 Dashboard":
         for week in cal:
             ref_day = next((d for d in week if d != 0), None)
             weekly_pnl = 0.0
+            weekly_rr = 0.0
             week_end_date = None
             if ref_day:
                 ref_date = date(view_year, view_month, ref_day)
@@ -341,6 +342,7 @@ if menu == "📊 Dashboard":
                 week_trades = [t for t in filtered_trades if
                                week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
                 weekly_pnl = sum(t['pnl'] for t in week_trades)
+                weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
 
             cols = st.columns(7)
             for i, day in enumerate(week):
@@ -358,7 +360,7 @@ if menu == "📊 Dashboard":
                             "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
                             "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
 
-                    card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c};">{weekly_pnl:+.1f} $</div></div>"""
+                    card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
                     cols[i].markdown(card_html, unsafe_allow_html=True)
 
                     curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
@@ -395,7 +397,7 @@ if menu == "📊 Dashboard":
                                         st.divider()
                             else:
                                 st.write("Brak tradów.")
-                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
+                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
                 else:
                     if day == 0:
                         cols[i].write("")
@@ -403,6 +405,7 @@ if menu == "📊 Dashboard":
                         curr_date = date(view_year, view_month, day)
                         day_trades = [t for t in filtered_trades if t['date'] == str(curr_date)]
                         day_pnl = sum([t['pnl'] for t in day_trades])
+                        day_rr = sum([t.get('rr', 0.0) for t in day_trades])
                         has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
                         valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
@@ -423,16 +426,16 @@ if menu == "📊 Dashboard":
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
                                     "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $"
+                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             elif day_pnl < 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
                                     "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                     "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $"
+                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             else:
-                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $"
+                                bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;">{pnl_disp}</div></div>"""
+                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;line-height:1.2;">{pnl_disp}</div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         with cols[i].popover(label=" ", use_container_width=True):
@@ -441,7 +444,7 @@ if menu == "📊 Dashboard":
                                 st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
                                           use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
                                 st.markdown(
-                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $]")
+                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                 st.divider()
                                 for t in day_trades:
                                     with st.container():
@@ -491,7 +494,7 @@ elif menu == "📝 Daily Journal":
     direction = r1c2.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
                                index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
                                    curr.get('direction', 'Long')), key="dj_dir")
-    tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
+    tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "External -> External", "-"]
     trade_type = r1c3.selectbox("Type", tt_l, index=0 if not curr or curr.get('trade_type') not in tt_l else tt_l.index(
         curr['trade_type']), key="dj_tt")
     acc_type_idx = 0 if not curr else ["Funded", "Evaluation"].index(curr.get('account_type', 'Funded'))
@@ -644,6 +647,7 @@ elif menu == "⏪ Backtesting":
             for week in cal:
                 ref_day = next((d for d in week if d != 0), None)
                 weekly_pnl = 0.0
+                weekly_rr = 0.0
                 week_end_date = None
                 if ref_day:
                     ref_date = date(view_year, view_month, ref_day)
@@ -653,6 +657,7 @@ elif menu == "⏪ Backtesting":
                     week_trades = [t for t in bt_trades if
                                    week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
                     weekly_pnl = sum(t['pnl'] for t in week_trades)
+                    weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
 
                 cols = st.columns(7)
                 for i, day in enumerate(week):
@@ -670,7 +675,7 @@ elif menu == "⏪ Backtesting":
                                 "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
                                 "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c};">{weekly_pnl:+.1f} $</div></div>"""
+                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
@@ -699,7 +704,7 @@ elif menu == "⏪ Backtesting":
                                             st.divider()
                                 else:
                                     st.write("Brak tradów.")
-                                    st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $")
+                                    st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
                     else:
                         if day == 0:
                             cols[i].write("")
@@ -707,6 +712,7 @@ elif menu == "⏪ Backtesting":
                             curr_date = date(view_year, view_month, day)
                             day_trades = [t for t in bt_trades if t['date'] == str(curr_date)]
                             day_pnl = sum([t['pnl'] for t in day_trades])
+                            day_rr = sum([t.get('rr', 0.0) for t in day_trades])
                             has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
                             valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
@@ -727,16 +733,16 @@ elif menu == "⏪ Backtesting":
                                     bg_c, bor_c, pnl_c, pnl_disp = (
                                         "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
                                         "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $"
+                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 elif day_pnl < 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
                                         "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                         "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $"
+                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 else:
-                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $"
+                                    bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;">{pnl_disp}</div></div>"""
+                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:1.1em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:1em;color:{pnl_c};text-align:center;line-height:1.2;">{pnl_disp}</div></div>"""
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             with cols[i].popover(label=" ", use_container_width=True):
@@ -746,7 +752,7 @@ elif menu == "⏪ Backtesting":
                                               use_container_width=True, on_click=go_to_history_for_day,
                                               args=(curr_date,))
                                     st.markdown(
-                                        f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $]")
+                                        f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                     st.divider()
                                     for t in day_trades:
                                         with st.container():
@@ -783,7 +789,7 @@ elif menu == "⏪ Backtesting":
         direction = r1c2.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
                                    index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
                                        curr.get('direction', 'Long')), key="bt_dir")
-        tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
+        tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "External -> External", "-"]
         trade_type = r1c3.selectbox("Type", tt_l,
                                     index=0 if not curr or curr.get('trade_type') not in tt_l else tt_l.index(
                                         curr['trade_type']), key="bt_tt")
