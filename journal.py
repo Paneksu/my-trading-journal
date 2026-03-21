@@ -1157,7 +1157,7 @@ elif menu == "📓 Trade Notes":
         is_bt_filter = True if notes_type == "Backtesting" else False
         filtered_trades = [t for t in all_trades if t.get('is_backtest', False) == is_bt_filter]
 
-        # Odrzucamy puste wpisy (sprawdzamy zarówno nowe jak i STARE pola notatek)
+        # Odrzucamy puste wpisy (sprawdzamy nowe notatki, stare notatki ORAZ linki do zdjęć)
         trades_with_notes = [
             t for t in filtered_trades
             if str(t.get('notes', '')).strip()
@@ -1167,6 +1167,8 @@ elif menu == "📓 Trade Notes":
                or str(t.get('general_notes', '')).strip()
                or str(t.get('htf_desc', '')).strip()
                or str(t.get('ltf_desc', '')).strip()
+               or any("http" in str(link) for link in t.get('htf_links', []))
+               or any("http" in str(link) for link in t.get('ltf_links', []))
         ]
 
         # Sortowanie od najnowszych
@@ -1209,6 +1211,24 @@ elif menu == "📓 Trade Notes":
                             ch1.write(f"**🏛️ HTF Notes:** {t['htf_desc']}")
                         if str(t.get('ltf_desc', '')).strip():
                             ch2.write(f"**⚡ LTF Notes:** {t['ltf_desc']}")
+
+                    # Wyświetlanie linków/zdjęć (HTF i LTF)
+                    has_htf = bool([l for l in t.get('htf_links', []) if "http" in l])
+                    has_ltf = bool([l for l in t.get('ltf_links', []) if "http" in l])
+
+                    if has_htf or has_ltf:
+                        st.write("---")
+                        cl1, cl2 = st.columns(2)
+                        with cl1:
+                            if has_htf:
+                                st.markdown("**🏛️ HTF Links**")
+                                for l in t.get('htf_links', []):
+                                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                        with cl2:
+                            if has_ltf:
+                                st.markdown("**⚡ LTF Links**")
+                                for l in t.get('ltf_links', []):
+                                    if "http" in l: st.image(l.strip(), use_container_width=True)
 
                     st.markdown("<hr style='border-color: " + current_theme['border'] + ";'>", unsafe_allow_html=True)
         else:
