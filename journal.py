@@ -34,7 +34,7 @@ themes = {
         "text_secondary": "#b4b4b4",
         "accent": "#ff007f",
         "popover_bg": "#1d1d27",
-        "card_shadow": "0 2px 4px rgba(0,0,0,0.3)",
+        "card_shadow": "0 4px 6px rgba(0,0,0,0.3)",
         "input_bg": "#1d1d27"
     },
     "Light": {
@@ -58,16 +58,16 @@ current_theme = themes[st.session_state.theme]
 def get_cal_colors(theme):
     if theme == "Dark":
         return {
-            "gray_bg": "rgba(142, 142, 147, 0.05)", "gray_bor": "#3a3a4a", "gray_txt": "#8e8e93",
-            "green_bg": "rgba(0, 255, 127, 0.1)", "green_bor": "rgba(0, 255, 127, 0.4)", "green_txt": "#00ff7f",
-            "red_bg": "rgba(255, 69, 58, 0.1)", "red_bor": "rgba(255, 69, 58, 0.4)", "red_txt": "#ff453a",
+            "gray_bg": "rgba(142, 142, 147, 0.05)", "gray_txt": "#8e8e93",
+            "green_bg": "rgba(0, 255, 127, 0.1)", "green_txt": "#00ff7f",
+            "red_bg": "rgba(255, 69, 58, 0.1)", "red_txt": "#ff453a",
             "badge_bg": "rgba(255,255,255,0.1)", "badge_txt": "#eaeaea"
         }
     else:
         return {
-            "gray_bg": "rgba(142, 142, 147, 0.05)", "gray_bor": "#d2dbe3", "gray_txt": "#8e8e93",
-            "green_bg": "rgba(34, 197, 94, 0.1)", "green_bor": "rgba(34, 197, 94, 0.4)", "green_txt": "#15803d",
-            "red_bg": "rgba(239, 68, 68, 0.1)", "red_bor": "rgba(239, 68, 68, 0.4)", "red_txt": "#b91c1c",
+            "gray_bg": "rgba(142, 142, 147, 0.05)", "gray_txt": "#8e8e93",
+            "green_bg": "rgba(34, 197, 94, 0.1)", "green_txt": "#15803d",
+            "red_bg": "rgba(239, 68, 68, 0.1)", "red_txt": "#b91c1c",
             "badge_bg": "rgba(0,0,0,0.05)", "badge_txt": "#202538"
         }
 
@@ -82,7 +82,7 @@ with top_col2:
         st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
         st.rerun()
 
-# --- INJECT CSS ---
+# --- INJECT CSS (Z JEDNOLITYM KALENDARZEM W STYLU GRID) ---
 st.markdown(f"""
     <style>
     /* Ukrycie domyślnego nagłówka Streamlit */
@@ -94,7 +94,7 @@ st.markdown(f"""
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
     [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
 
-    /* POWIĘKSZONE I CZYTELNE KAFELKI METRICS */
+    /* KAFELKI METRICS */
     div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 15px 20px !important; border-radius: 12px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
     [data-testid="stMetricValue"] {{ font-size: 2.2rem !important; font-weight: bold !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
     [data-testid="stMetricLabel"] {{ font-size: 1.1rem !important; color: {current_theme['text_secondary']} !important; }}
@@ -102,77 +102,101 @@ st.markdown(f"""
     h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
     .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
     div[data-testid="stButton"] button {{ border: 1px solid {current_theme['border']}; background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; font-weight: bold; box-shadow: {current_theme['card_shadow']}; }}
-    div[data-testid="column"] div[data-testid="stButton"] button {{ border-radius: 50%; width: 45px; height: 45px; }}
 
-    [data-testid="stImage"] {{ overflow: visible !important; position: relative !important; }}
-    button[title="View fullscreen"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: 2.5rem !important; height: 2.5rem !important; right: 0.5rem !important; top: 0.5rem !important; z-index: 999999 !important; cursor: pointer !important; border-radius: 8px !important; align-items: center !important; justify-content: center !important; transition: background-color 0.2s !important; }}
-    button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
+    /* FULLSCREEN BUTTON POPRAWKA */
+    button[title="View fullscreen"] {{ background-color: rgba(0, 0, 0, 0.6) !important; border-radius: 8px !important; z-index: 999999 !important; }}
 
-    /* --- NOWOCZESNY KALENDARZ OD ZERA --- */
-    .modern-cal-day {{
-        height: 85px;
-        width: 100%;
-        border-radius: 12px;
-        padding: 6px 8px;
+    /* --- NOWY, SCALONY KALENDARZ (GRID) --- */
+    /* Główny kontener - udaje tabelę */
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) {{
+        border: 1px solid {current_theme['border']} !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: {current_theme['card_shadow']} !important;
+        background-color: {current_theme['bg_card']} !important;
+        gap: 0 !important;
+        padding: 0 !important;
+    }}
+
+    /* Wiersze wewnątrz kalendarza */
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="stHorizontalBlock"] {{
+        gap: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+
+    /* Komórki wewnątrz kalendarza - wewnętrzne linie gridu */
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="column"] {{
+        border-right: 1px solid {current_theme['border']};
+        border-bottom: 1px solid {current_theme['border']};
+        padding: 0 !important;
+        margin: 0 !important;
+        position: relative;
+    }}
+
+    /* Usuwanie zduplikowanych linii brzegowych */
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="stHorizontalBlock"] div[data-testid="column"]:last-child {{
+        border-right: none !important;
+    }}
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="stHorizontalBlock"]:last-child div[data-testid="column"] {{
+        border-bottom: none !important;
+    }}
+
+    /* Stylowanie zawartości komórki HTML */
+    .cal-header-cell {{
+        text-align: center;
+        padding: 10px 0;
+        font-weight: 600;
+        font-size: 0.85em;
+        color: {current_theme['text_secondary']};
+        background-color: rgba(128, 128, 128, 0.05);
+    }}
+    .cal-cell-content {{
+        height: 70px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        border: 1px solid;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        padding: 6px 8px;
+        width: 100%;
         box-sizing: border-box;
     }}
-    .modern-cal-day:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    .cal-top {{ display: flex; justify-content: space-between; align-items: flex-start; }}
+    .cal-day-num {{ font-size: 0.95em; font-weight: bold; color: {current_theme['text_primary']}; opacity: 0.9; }}
+    .cal-badge {{ font-size: 0.65em; padding: 1px 4px; border-radius: 4px; background: {cal_colors['badge_bg']}; color: {cal_colors['badge_txt']}; font-weight: bold; }}
+    .cal-bottom {{ text-align: center; line-height: 1.2; }}
+    .cal-pnl {{ font-size: 0.9em; font-weight: bold; letter-spacing: 0.5px; }}
+    .cal-rr {{ font-size: 0.7em; font-weight: 500; opacity: 0.8; }}
+
+    .wk-sum-cell {{ align-items: center; justify-content: center; background-color: rgba(128, 128, 128, 0.02); }}
+
+    /* Całkowite ukrycie natywnego przycisku popovera, ale zostawienie funkcjonalności hover */
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="stPopover"] {{
+        position: absolute !important;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 10;
     }}
-    .mc-header {{ display: flex; justify-content: space-between; align-items: flex-start; }}
-    .mc-badge {{ font-size: 0.7em; font-weight: bold; padding: 2px 6px; border-radius: 6px; }}
-    .mc-day-num {{ font-size: 1.05em; font-weight: bold; opacity: 0.9; margin-top: -2px; }}
-    .mc-body {{ display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 2px; }}
-    .mc-pnl {{ font-size: 0.95em; font-weight: bold; letter-spacing: 0.5px; }}
-    .mc-rr {{ font-size: 0.8em; font-weight: 500; opacity: 0.85; margin-top: 2px; }}
-
-    .modern-cal-week {{
-        height: 85px;
-        width: 100%;
-        border-radius: 12px;
-        padding: 6px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border: 2px dashed;
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="stPopover"] > button {{
+        height: 100% !important; width: 100% !important;
+        background: transparent !important; border: none !important;
+        border-radius: 0 !important; color: transparent !important; padding: 0 !important;
     }}
-    .mc-week-title {{ font-size: 0.65em; text-transform: uppercase; font-weight: bold; opacity: 0.7; margin-bottom: 4px; }}
-
-    /* Hakowanie Popovera pod nowy Kalendarz */
-    div[data-testid="stPopover"] > button {{ height: 85px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 12px !important; color: transparent !important; margin-top: -85px !important; position: relative; z-index: 5; }}
-    div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 1px solid {current_theme['accent']} !important; }}
-
-    div[data-testid="column"] {{ padding: 2px !important; }}
+    div[data-testid="stVerticalBlock"]:has(.calendar-root) div[data-testid="stPopover"] > button:hover {{
+        background: rgba(255, 255, 255, 0.05) !important;
+    }}
 
     div[data-testid="stPopoverBody"] {{ 
         border: 1px solid {current_theme['border']} !important; 
         background-color: {current_theme['popover_bg']} !important; 
         color: {current_theme['text_primary']} !important; 
-        min-width: 1200px !important; 
-        max-width: 95vw !important;
+        min-width: 1200px !important; max-width: 95vw !important;
     }}
 
     .highlight-box {{ 
         background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; 
-        padding: 10px; 
-        border-radius: 5px; 
-        border-left: 5px solid #00ff7f; 
-        margin-bottom: 10px; 
-        color: {current_theme['text_primary']};
-        border: 1px solid {current_theme['border']};
+        padding: 10px; border-radius: 5px; border-left: 5px solid #00ff7f; margin-bottom: 10px; 
+        color: {current_theme['text_primary']}; border: 1px solid {current_theme['border']};
         white-space: pre-wrap;
     }}
-
-    .streamlit-expanderHeader {{ background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; border-radius: 5px; border: 1px solid {current_theme['border']}; }}
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"], input, textarea, select {{ background-color: {current_theme['input_bg']} !important; color: {current_theme['text_primary']} !important; border-color: {current_theme['border']} !important; }}
-    div[data-baseweb="select"] svg, div[data-baseweb="input"] svg {{ fill: {current_theme['text_secondary']} !important; }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -210,17 +234,13 @@ def load_data_from_gsheets():
             except:
                 row['pnl'] = 0.0
 
-            # Pobieranie i rzutowanie nowej zmiennej RR
             try:
                 rr_str = str(row.get('rr', 0)).replace(',', '.')
                 row['rr'] = float(rr_str) if rr_str else 0.0
             except:
                 row['rr'] = 0.0
 
-            # Wsteczna kompatybilność: domyślnie 'Funded' dla starych danych
             row['account_type'] = row.get('account_type') if row.get('account_type') else 'Funded'
-
-            # Nowe pola dla Backtestingu (i ujednoliconego Journala)
             row['is_backtest'] = str(row.get('is_backtest', 'False')).lower() == 'true'
             row['notes'] = row.get('notes', "")
             row['model_mistakes'] = row.get('model_mistakes', "")
@@ -232,8 +252,7 @@ def load_data_from_gsheets():
                 except:
                     row['confluences'] = []
             else:
-                if not isinstance(row.get('confluences'), list):
-                    row['confluences'] = []
+                if not isinstance(row.get('confluences'), list): row['confluences'] = []
 
             if row.get('date'): row['date'] = str(row['date'])
             processed_data.append(row)
@@ -243,7 +262,6 @@ def load_data_from_gsheets():
 
 
 def save_all_data(data):
-    # Dodano kolumnę 'rr'
     columns = ['date', 'asset', 'direction', 'time', 'trade_type', 'account_type', 'outcome', 'pnl', 'rr',
                'general_notes', 'mood', 'interfered', 'interfered_how', 'htf_desc', 'htf_keypoints',
                'htf_links', 'ltf_desc', 'ltf_keypoints', 'ltf_links', 'checklist',
@@ -260,7 +278,6 @@ def save_all_data(data):
         new_row['checklist'] = json.dumps(row.get('checklist', [False] * 6))
         new_row['confluences'] = json.dumps(row.get('confluences', []))
 
-        # Zabezpieczenie brakujących kolumn
         for col in columns:
             if col not in new_row:
                 new_row[col] = "" if col not in ['is_backtest', 'confluences', 'checklist', 'htf_links',
@@ -323,7 +340,6 @@ with st.sidebar:
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     with top_col1:
-        # KOMPAKTOWY NAGŁÓWEK
         c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
         c_t.markdown("<h2 style='margin-top: -15px;'>📊 Dashboard</h2>", unsafe_allow_html=True)
         account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True,
@@ -360,7 +376,6 @@ if menu == "📊 Dashboard":
             wr = (wins_count / total_valid * 100) if total_valid > 0 else 0
             avg_win = (gross_profit / wins_count) if wins_count > 0 else 0
             avg_loss = (gross_loss / losses_count) if losses_count > 0 else 0
-
             profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (
                 float('inf') if gross_profit > 0 else 0.0)
 
@@ -369,137 +384,125 @@ if menu == "📊 Dashboard":
             c2.metric("Win Rate", f"{wr:.1f}%")
             c3.metric("Avg Win", f"{avg_win:+.1f} $")
             c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
-            pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
-            c5.metric("Profit Factor", pf_display)
+            c5.metric("Profit Factor", "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}")
             c6.metric("Trades", total_valid)
         else:
             st.info(f"Brak danych dla wybranego filtru: {account_filter}")
 
         st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
-
         cal = calendar.monthcalendar(view_year, view_month)
 
-        cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
-        days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "📊 Wk"]
-        for i, d in enumerate(days_header):
-            cols[i].markdown(
-                f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.85em;'>{d}</b></center>",
-                unsafe_allow_html=True)
+        # UNIFIED CALENDAR RENDER
+        with st.container():
+            st.markdown("<div class='calendar-root'></div>", unsafe_allow_html=True)
 
-        for week in cal:
-            ref_day = next((d for d in week if d != 0), None)
-            weekly_pnl = 0.0
-            weekly_rr = 0.0
-            week_end_date = None
-            if ref_day:
-                ref_date = date(view_year, view_month, ref_day)
-                day_idx = week.index(ref_day)
-                week_start_date = ref_date - timedelta(days=day_idx)
-                week_end_date = week_start_date + timedelta(days=6)
-                week_trades = [t for t in filtered_trades if
-                               week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
-                weekly_pnl = sum(t['pnl'] for t in week_trades)
-                weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
+            # Header Row
+            cols = st.columns([1] * 7 + [1.2])
+            days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Wk Sum"]
+            for i, d in enumerate(days_header):
+                with cols[i]:
+                    st.markdown(f"<div class='cal-header-cell'>{d}</div>", unsafe_allow_html=True)
 
-            cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
-            for i, day in enumerate(week):
-                if day == 0:
-                    cols[i].write("")
-                else:
-                    curr_date = date(view_year, view_month, day)
-                    day_trades = [t for t in filtered_trades if t['date'] == str(curr_date)]
-                    day_pnl = sum([t['pnl'] for t in day_trades])
-                    day_rr = sum([t.get('rr', 0.0) for t in day_trades])
-                    has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                    valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+            # Weeks Rows
+            for week in cal:
+                ref_day = next((d for d in week if d != 0), None)
+                weekly_pnl = 0.0
+                weekly_rr = 0.0
+                if ref_day:
+                    ref_date = date(view_year, view_month, ref_day)
+                    week_start_date = ref_date - timedelta(days=week.index(ref_day))
+                    week_end_date = week_start_date + timedelta(days=6)
+                    week_trades = [t for t in filtered_trades if
+                                   week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
+                    weekly_pnl = sum(t['pnl'] for t in week_trades)
+                    weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
 
-                    if day_trades:
-                        if valid_trades_count > 0:
-                            badge = f"<div class='mc-badge' style='color:{cal_colors['badge_txt']}; background:{cal_colors['badge_bg']};'>{valid_trades_count}x</div>"
+                cols = st.columns([1] * 7 + [1.2])
+                for i, day in enumerate(week):
+                    with cols[i]:
+                        if day == 0:
+                            st.markdown("<div class='cal-cell-content' style='background: transparent;'></div>",
+                                        unsafe_allow_html=True)
                         else:
-                            badge = "<div></div>"
+                            curr_date = date(view_year, view_month, day)
+                            day_trades = [t for t in filtered_trades if t['date'] == str(curr_date)]
+                            day_pnl = sum([t['pnl'] for t in day_trades])
+                            day_rr = sum([t.get('rr', 0.0) for t in day_trades])
+                            valid_trades = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
-                        if has_no_trade and day_pnl == 0:
-                            bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
-                            pnl_disp, rr_disp = "⚪ No Trade", ""
-                        elif day_pnl > 0:
-                            bg_c, bor_c, pnl_c = cal_colors['green_bg'], cal_colors['green_bor'], cal_colors[
-                                'green_txt']
-                            pnl_disp, rr_disp = f"🟢 +{day_pnl:.1f} $", f"RR: {day_rr:.2f}"
-                        elif day_pnl < 0:
-                            bg_c, bor_c, pnl_c = cal_colors['red_bg'], cal_colors['red_bor'], cal_colors['red_txt']
-                            pnl_disp, rr_disp = f"🔴 {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
-                        else:
-                            bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
-                            pnl_disp, rr_disp = f"⚪ {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
+                            if day_trades:
+                                bg_c = cal_colors['green_bg'] if day_pnl > 0 else (
+                                    cal_colors['red_bg'] if day_pnl < 0 else cal_colors['gray_bg'])
+                                txt_c = cal_colors['green_txt'] if day_pnl > 0 else (
+                                    cal_colors['red_txt'] if day_pnl < 0 else cal_colors['gray_txt'])
+                                badge = f"<div class='cal-badge'>{valid_trades}x</div>" if valid_trades > 0 else "<div></div>"
+                                pnl_str = f"{'+' if day_pnl > 0 else ''}{day_pnl:.1f} $" if valid_trades > 0 or day_pnl != 0 else "No Trade"
+                                rr_str = f"RR: {day_rr:.2f}" if valid_trades > 0 or day_rr != 0 else ""
 
-                        card_html = f"""
-                        <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
-                            <div class="mc-header">
-                                {badge}
-                                <div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div>
-                            </div>
-                            <div class="mc-body">
-                                <div class="mc-pnl" style="color: {pnl_c};">{pnl_disp}</div>
-                                <div class="mc-rr" style="color: {pnl_c};">{rr_disp}</div>
-                            </div>
-                        </div>
-                        """
-                        cols[i].markdown(card_html, unsafe_allow_html=True)
+                                html = f"""
+                                <div class="cal-cell-content" style="background: {bg_c};">
+                                    <div class="cal-top"><div class="cal-day-num">{day}</div>{badge}</div>
+                                    <div class="cal-bottom">
+                                        <div class="cal-pnl" style="color: {txt_c};">{pnl_str}</div>
+                                        <div class="cal-rr" style="color: {txt_c};">{rr_str}</div>
+                                    </div>
+                                </div>
+                                """
+                                st.markdown(html, unsafe_allow_html=True)
 
-                        with cols[i].popover(label=" ", use_container_width=True):
-                            st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                            st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
-                                      use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
-                            st.markdown(
-                                f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                            st.divider()
-                            for t in day_trades:
-                                with st.container():
-                                    h1, h2 = st.columns([3, 1])
-                                    h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                    pnl_color = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                    h2.markdown(f"<h3 style='color:{pnl_color}'>{t['pnl']:+.1f} $</h3>",
-                                                unsafe_allow_html=True)
-                                    st.caption(
-                                        f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
-                                    if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                    st.markdown("---")
-                                    c_htf, c_ltf = st.columns(2)
-                                    with c_htf:
-                                        st.markdown("#### 🏛️ HTF Links")
-                                        for l in t.get('htf_links', []):
-                                            if "http" in l: st.image(l.strip(), use_container_width=True)
-                                    with c_ltf:
-                                        st.markdown("#### ⚡ LTF Links")
-                                        for l in t.get('ltf_links', []):
-                                            if "http" in l: st.image(l.strip(), use_container_width=True)
+                                with st.popover(" "):
+                                    st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
+                                    st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
+                                              use_container_width=True, on_click=go_to_history_for_day,
+                                              args=(curr_date,))
+                                    st.markdown(
+                                        f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                     st.divider()
-                    else:
-                        bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
-                        card_html = f"""
-                        <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
-                            <div class="mc-header"><div></div><div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div></div>
+                                    for t in day_trades:
+                                        with st.container():
+                                            h1, h2 = st.columns([3, 1])
+                                            h1.markdown(f"### {t['asset']} ({t['direction']})")
+                                            h2.markdown(
+                                                f"<h3 style='color: {'green' if t['pnl'] > 0 else ('red' if t['pnl'] < 0 else 'gray')}'>{t['pnl']:+.1f} $</h3>",
+                                                unsafe_allow_html=True)
+                                            st.caption(
+                                                f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
+                                            if t.get('notes'): st.info(f"📝 {t['notes']}")
+                                            st.markdown("---")
+                                            c_h, c_l = st.columns(2)
+                                            with c_h:
+                                                st.markdown("#### 🏛️ HTF Links")
+                                                for l in t.get('htf_links', []):
+                                                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                                            with c_l:
+                                                st.markdown("#### ⚡ LTF Links")
+                                                for l in t.get('ltf_links', []):
+                                                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                                            st.divider()
+                            else:
+                                # Pusty, czysty dzień bez transakcji - tylko numerek
+                                html = f"""
+                                <div class="cal-cell-content" style="background: {cal_colors['gray_bg']};">
+                                    <div class="cal-top"><div class="cal-day-num">{day}</div></div>
+                                </div>
+                                """
+                                st.markdown(html, unsafe_allow_html=True)
+
+                with cols[7]:
+                    wk_bg = cal_colors['green_bg'] if weekly_pnl > 0 else (
+                        cal_colors['red_bg'] if weekly_pnl < 0 else cal_colors['gray_bg'])
+                    wk_txt = cal_colors['green_txt'] if weekly_pnl > 0 else (
+                        cal_colors['red_txt'] if weekly_pnl < 0 else cal_colors['gray_txt'])
+                    wk_html = f"""
+                    <div class="cal-cell-content wk-sum-cell" style="background: {wk_bg};">
+                        <div style="font-size: 0.6em; text-transform: uppercase; font-weight: bold; color: {current_theme['text_secondary']};">Wk Sum</div>
+                        <div class="cal-bottom">
+                            <div class="cal-pnl" style="color: {wk_txt}; font-size: 0.95em;">{weekly_pnl:+.1f} $</div>
+                            <div class="cal-rr" style="color: {wk_txt}; font-size: 0.8em;">RR: {weekly_rr:.2f}</div>
                         </div>
-                        """
-                        cols[i].markdown(card_html, unsafe_allow_html=True)
-
-            # --- KOLUMNA 7: WEEKLY SUMMARY ---
-            w_bg = cal_colors['green_bg'] if weekly_pnl > 0 else (
-                cal_colors['red_bg'] if weekly_pnl < 0 else cal_colors['gray_bg'])
-            w_bor = cal_colors['green_bor'] if weekly_pnl > 0 else (
-                cal_colors['red_bor'] if weekly_pnl < 0 else cal_colors['gray_bor'])
-            w_txt = cal_colors['green_txt'] if weekly_pnl > 0 else (
-                cal_colors['red_txt'] if weekly_pnl < 0 else cal_colors['gray_txt'])
-
-            wk_html = f"""
-            <div class="modern-cal-week" style="background: {w_bg}; border-color: {w_bor};">
-                <div class="mc-week-title" style="color: {current_theme['text_secondary']};">Weekly Summary</div>
-                <div class="mc-pnl" style="color: {w_txt};">{weekly_pnl:+.1f} $</div>
-                <div class="mc-rr" style="color: {w_txt};">RR: {weekly_rr:.2f}</div>
-            </div>
-            """
-            cols[7].markdown(wk_html, unsafe_allow_html=True)
+                    </div>
+                    """
+                    st.markdown(wk_html, unsafe_allow_html=True)
     else:
         st.info("Brak danych.")
 
@@ -587,7 +590,7 @@ elif menu == "📝 Daily Journal":
             "is_backtest": False,
             "notes": notes, "model_mistakes": model_mistakes, "mental_mistakes": mental_mistakes,
             "confluences": st.session_state.dj_temp_conf.copy(),
-            "checklist": [False] * 6,  # Przekazanie pustej listy, by nie zepsuć struktury bazy
+            "checklist": [False] * 6,
             "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
             "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
             "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
@@ -660,131 +663,115 @@ elif menu == "⏪ Backtesting":
             c2.metric("Win Rate", f"{wr:.1f}%")
             c3.metric("Avg Win", f"{avg_win:+.1f} $")
             c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
-            pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
-            c5.metric("Profit Factor", pf_display)
+            c5.metric("Profit Factor", "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}")
             c6.metric("Trades", total_valid)
             c7.metric("Days", unique_days)
 
-            # --- BT CALENDAR ---
+            # --- BT CALENDAR (ZUNIFIKOWANY GRID) ---
             st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
-
             cal = calendar.monthcalendar(view_year, view_month)
 
-            cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
-            days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "📊 Wk"]
-            for i, d in enumerate(days_header):
-                cols[i].markdown(
-                    f"<center><b style='color:{current_theme['text_secondary']}; font-size: 0.85em;'>{d}</b></center>",
-                    unsafe_allow_html=True)
+            with st.container():
+                st.markdown("<div class='calendar-root'></div>", unsafe_allow_html=True)
 
-            for week in cal:
-                ref_day = next((d for d in week if d != 0), None)
-                weekly_pnl = 0.0
-                weekly_rr = 0.0
-                week_end_date = None
-                if ref_day:
-                    ref_date = date(view_year, view_month, ref_day)
-                    day_idx = week.index(ref_day)
-                    week_start_date = ref_date - timedelta(days=day_idx)
-                    week_end_date = week_start_date + timedelta(days=6)
-                    week_trades = [t for t in bt_trades if
-                                   week_start_date <= datetime.strptime(t['date'], '%Y-%m-%d').date() <= week_end_date]
-                    weekly_pnl = sum(t['pnl'] for t in week_trades)
-                    weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
+                # Header Row
+                cols = st.columns([1] * 7 + [1.2])
+                days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Wk Sum"]
+                for i, d in enumerate(days_header):
+                    with cols[i]:
+                        st.markdown(f"<div class='cal-header-cell'>{d}</div>", unsafe_allow_html=True)
 
-                cols = st.columns([1, 1, 1, 1, 1, 1, 1, 1.2])
-                for i, day in enumerate(week):
-                    if day == 0:
-                        cols[i].write("")
-                    else:
-                        curr_date = date(view_year, view_month, day)
-                        day_trades = [t for t in bt_trades if t['date'] == str(curr_date)]
-                        day_pnl = sum([t['pnl'] for t in day_trades])
-                        day_rr = sum([t.get('rr', 0.0) for t in day_trades])
-                        has_no_trade = any(t['direction'] == 'No Trade' for t in day_trades)
-                        valid_trades_count = sum(1 for t in day_trades if t['direction'] != 'No Trade')
+                # Weeks Rows
+                for week in cal:
+                    ref_day = next((d for d in week if d != 0), None)
+                    weekly_pnl = 0.0
+                    weekly_rr = 0.0
+                    if ref_day:
+                        ref_date = date(view_year, view_month, ref_day)
+                        week_start_date = ref_date - timedelta(days=week.index(ref_day))
+                        week_end_date = week_start_date + timedelta(days=6)
+                        week_trades = [t for t in bt_trades if week_start_date <= datetime.strptime(t['date'],
+                                                                                                    '%Y-%m-%d').date() <= week_end_date]
+                        weekly_pnl = sum(t['pnl'] for t in week_trades)
+                        weekly_rr = sum(t.get('rr', 0.0) for t in week_trades)
 
-                        if day_trades:
-                            if valid_trades_count > 0:
-                                badge = f"<div class='mc-badge' style='color:{cal_colors['badge_txt']}; background:{cal_colors['badge_bg']};'>{valid_trades_count}x</div>"
+                    cols = st.columns([1] * 7 + [1.2])
+                    for i, day in enumerate(week):
+                        with cols[i]:
+                            if day == 0:
+                                st.markdown("<div class='cal-cell-content' style='background: transparent;'></div>",
+                                            unsafe_allow_html=True)
                             else:
-                                badge = "<div></div>"
+                                curr_date = date(view_year, view_month, day)
+                                day_trades = [t for t in bt_trades if t['date'] == str(curr_date)]
+                                day_pnl = sum([t['pnl'] for t in day_trades])
+                                day_rr = sum([t.get('rr', 0.0) for t in day_trades])
+                                valid_trades = sum(1 for t in day_trades if t['direction'] != 'No Trade')
 
-                            if has_no_trade and day_pnl == 0:
-                                bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors[
-                                    'gray_txt']
-                                pnl_disp, rr_disp = "⚪ No Trade", ""
-                            elif day_pnl > 0:
-                                bg_c, bor_c, pnl_c = cal_colors['green_bg'], cal_colors['green_bor'], cal_colors[
-                                    'green_txt']
-                                pnl_disp, rr_disp = f"🟢 +{day_pnl:.1f} $", f"RR: {day_rr:.2f}"
-                            elif day_pnl < 0:
-                                bg_c, bor_c, pnl_c = cal_colors['red_bg'], cal_colors['red_bor'], cal_colors['red_txt']
-                                pnl_disp, rr_disp = f"🔴 {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
-                            else:
-                                bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors[
-                                    'gray_txt']
-                                pnl_disp, rr_disp = f"⚪ {day_pnl:.1f} $", f"RR: {day_rr:.2f}"
+                                if day_trades:
+                                    bg_c = cal_colors['green_bg'] if day_pnl > 0 else (
+                                        cal_colors['red_bg'] if day_pnl < 0 else cal_colors['gray_bg'])
+                                    txt_c = cal_colors['green_txt'] if day_pnl > 0 else (
+                                        cal_colors['red_txt'] if day_pnl < 0 else cal_colors['gray_txt'])
+                                    badge = f"<div class='cal-badge'>{valid_trades}x</div>" if valid_trades > 0 else "<div></div>"
+                                    pnl_str = f"{'+' if day_pnl > 0 else ''}{day_pnl:.1f} $" if valid_trades > 0 or day_pnl != 0 else "No Trade"
+                                    rr_str = f"RR: {day_rr:.2f}" if valid_trades > 0 or day_rr != 0 else ""
 
-                            card_html = f"""
-                            <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
-                                <div class="mc-header">
-                                    {badge}
-                                    <div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div>
-                                </div>
-                                <div class="mc-body">
-                                    <div class="mc-pnl" style="color: {pnl_c};">{pnl_disp}</div>
-                                    <div class="mc-rr" style="color: {pnl_c};">{rr_disp}</div>
-                                </div>
-                            </div>
-                            """
-                            cols[i].markdown(card_html, unsafe_allow_html=True)
+                                    html = f"""
+                                    <div class="cal-cell-content" style="background: {bg_c};">
+                                        <div class="cal-top"><div class="cal-day-num">{day}</div>{badge}</div>
+                                        <div class="cal-bottom">
+                                            <div class="cal-pnl" style="color: {txt_c};">{pnl_str}</div>
+                                            <div class="cal-rr" style="color: {txt_c};">{rr_str}</div>
+                                        </div>
+                                    </div>
+                                    """
+                                    st.markdown(html, unsafe_allow_html=True)
 
-                            with cols[i].popover(label=" ", use_container_width=True):
-                                st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                                st.button(f"🔎 Go to History ({curr_date})", key=f"gth_bt_{curr_date}",
-                                          use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
-                                st.markdown(
-                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                                st.divider()
-                                for t in day_trades:
-                                    with st.container():
-                                        h1, h2 = st.columns([3, 1])
-                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                        pnl_color = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                        h2.markdown(f"<h3 style='color:{pnl_color}'>{t['pnl']:+.1f} $</h3>",
-                                                    unsafe_allow_html=True)
-                                        st.caption(
-                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
-                                        if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                        st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
-                                        st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
+                                    with st.popover(" "):
+                                        st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
+                                        st.button(f"🔎 Go to History ({curr_date})", key=f"gth_bt_{curr_date}",
+                                                  use_container_width=True, on_click=go_to_history_for_day,
+                                                  args=(curr_date,))
+                                        st.markdown(
+                                            f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                         st.divider()
-                        else:
-                            bg_c, bor_c, pnl_c = cal_colors['gray_bg'], cal_colors['gray_bor'], cal_colors['gray_txt']
-                            card_html = f"""
-                            <div class="modern-cal-day" style="background: {bg_c}; border-color: {bor_c};">
-                                <div class="mc-header"><div></div><div class="mc-day-num" style="color: {current_theme['text_primary']};">{day}</div></div>
+                                        for t in day_trades:
+                                            with st.container():
+                                                h1, h2 = st.columns([3, 1])
+                                                h1.markdown(f"### {t['asset']} ({t['direction']})")
+                                                h2.markdown(
+                                                    f"<h3 style='color: {'green' if t['pnl'] > 0 else ('red' if t['pnl'] < 0 else 'gray')}'>{t['pnl']:+.1f} $</h3>",
+                                                    unsafe_allow_html=True)
+                                                st.caption(
+                                                    f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
+                                                if t.get('notes'): st.info(f"📝 {t['notes']}")
+                                                st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
+                                                st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
+                                                st.divider()
+                                else:
+                                    html = f"""
+                                    <div class="cal-cell-content" style="background: {cal_colors['gray_bg']};">
+                                        <div class="cal-top"><div class="cal-day-num">{day}</div></div>
+                                    </div>
+                                    """
+                                    st.markdown(html, unsafe_allow_html=True)
+
+                    with cols[7]:
+                        wk_bg = cal_colors['green_bg'] if weekly_pnl > 0 else (
+                            cal_colors['red_bg'] if weekly_pnl < 0 else cal_colors['gray_bg'])
+                        wk_txt = cal_colors['green_txt'] if weekly_pnl > 0 else (
+                            cal_colors['red_txt'] if weekly_pnl < 0 else cal_colors['gray_txt'])
+                        wk_html = f"""
+                        <div class="cal-cell-content wk-sum-cell" style="background: {wk_bg};">
+                            <div style="font-size: 0.6em; text-transform: uppercase; font-weight: bold; color: {current_theme['text_secondary']};">Wk Sum</div>
+                            <div class="cal-bottom">
+                                <div class="cal-pnl" style="color: {wk_txt}; font-size: 0.95em;">{weekly_pnl:+.1f} $</div>
+                                <div class="cal-rr" style="color: {wk_txt}; font-size: 0.8em;">RR: {weekly_rr:.2f}</div>
                             </div>
-                            """
-                            cols[i].markdown(card_html, unsafe_allow_html=True)
-
-                # --- KOLUMNA 7: WEEKLY SUMMARY ---
-                w_bg = cal_colors['green_bg'] if weekly_pnl > 0 else (
-                    cal_colors['red_bg'] if weekly_pnl < 0 else cal_colors['gray_bg'])
-                w_bor = cal_colors['green_bor'] if weekly_pnl > 0 else (
-                    cal_colors['red_bor'] if weekly_pnl < 0 else cal_colors['gray_bor'])
-                w_txt = cal_colors['green_txt'] if weekly_pnl > 0 else (
-                    cal_colors['red_txt'] if weekly_pnl < 0 else cal_colors['gray_txt'])
-
-                wk_html = f"""
-                <div class="modern-cal-week" style="background: {w_bg}; border-color: {w_bor};">
-                    <div class="mc-week-title" style="color: {current_theme['text_secondary']};">Weekly Summary</div>
-                    <div class="mc-pnl" style="color: {w_txt};">{weekly_pnl:+.1f} $</div>
-                    <div class="mc-rr" style="color: {w_txt};">RR: {weekly_rr:.2f}</div>
-                </div>
-                """
-                cols[7].markdown(wk_html, unsafe_allow_html=True)
+                        </div>
+                        """
+                        st.markdown(wk_html, unsafe_allow_html=True)
         else:
             st.info("Brak danych z Backtestingu.")
 
@@ -870,7 +857,7 @@ elif menu == "⏪ Backtesting":
                 "is_backtest": True,
                 "notes": notes, "model_mistakes": model_mistakes, "mental_mistakes": mental_mistakes,
                 "confluences": st.session_state.bt_temp_conf.copy(),
-                "checklist": [False] * 6,  # Przekazanie pustej listy, by nie zepsuć struktury bazy
+                "checklist": [False] * 6,
                 "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
                 "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
                 "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
