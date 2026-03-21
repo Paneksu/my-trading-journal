@@ -483,44 +483,41 @@ elif menu == "📝 Daily Journal":
         st.session_state.dj_current_edit_idx = st.session_state.editing_index
         st.session_state.dj_temp_conf = curr.get('confluences', []).copy() if curr else []
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Technical Setup")
-        ca1, ca2 = st.columns(2)
-        asset = ca1.selectbox("Asset", ["NQ", "MNQ", "ES", "MES", "XAUUSD"],
-                              index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']),
-                              key="dj_asset")
-        acc_type_idx = 0 if not curr else ["Funded", "Evaluation"].index(curr.get('account_type', 'Funded'))
-        account_type = ca2.selectbox("Account Type", ["Funded", "Evaluation"], index=acc_type_idx, key="dj_acc")
+    st.subheader("📌 Trade Details")
+    r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+    asset = r1c1.selectbox("Asset", ["NQ", "MNQ", "ES", "MES", "XAUUSD"],
+                           index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']),
+                           key="dj_asset")
+    direction = r1c2.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
+                               index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
+                                   curr.get('direction', 'Long')), key="dj_dir")
+    tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
+    trade_type = r1c3.selectbox("Type", tt_l, index=0 if not curr or curr.get('trade_type') not in tt_l else tt_l.index(
+        curr['trade_type']), key="dj_tt")
+    acc_type_idx = 0 if not curr else ["Funded", "Evaluation"].index(curr.get('account_type', 'Funded'))
+    account_type = r1c4.selectbox("Account Type", ["Funded", "Evaluation"], index=acc_type_idx, key="dj_acc")
 
-        trade_date = st.date_input("Date",
-                                   date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date(),
-                                   key="dj_date")
-        direction = st.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
-                                 index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
-                                     curr.get('direction', 'Long')), key="dj_dir")
-        exec_time = st.text_input("Time", value="" if not curr else curr['time'], key="dj_time")
-        st.write("---")
-        notes = st.text_area("Notes", value="" if not curr else curr.get('notes', ''), key="dj_notes", height=130)
-        htf_links = st.text_area("HTF Links", value="" if not curr else "\n".join(curr.get('htf_links', [])),
-                                 key="dj_htf")
-        ltf_links = st.text_area("LTF Links", value="" if not curr else "\n".join(curr.get('ltf_links', [])),
-                                 key="dj_ltf")
-
-    with col2:
-        st.subheader("Execution")
-        tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
-        trade_type = st.selectbox("Type", tt_l,
-                                  index=0 if not curr or curr.get('trade_type') not in tt_l else tt_l.index(
-                                      curr['trade_type']), key="dj_tt")
-        st.write("---")
-        model_mistakes = st.text_area("Model Mistakes", value="" if not curr else curr.get('model_mistakes', ''),
-                                      key="dj_mod_mist")
-        mental_mistakes = st.text_area("Mental Mistakes", value="" if not curr else curr.get('mental_mistakes', ''),
-                                       key="dj_men_mist")
+    r2c1, r2c2, r2c3, r2c4, r2c5 = st.columns(5)
+    trade_date = r2c1.date_input("Date",
+                                 date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date(),
+                                 key="dj_date")
+    exec_time = r2c2.text_input("Time", value="" if not curr else curr['time'], key="dj_time")
+    outcome = r2c3.selectbox("Outcome", ["Win", "Loss", "Breakeven", "No Trade"],
+                             index=0 if not curr else ["Win", "Loss", "Breakeven", "No Trade"].index(curr['outcome']),
+                             key="dj_out")
+    pnl_val = r2c4.number_input("PnL ($)", value=0.0 if not curr else float(curr['pnl']), key="dj_pnl")
+    rr_val = r2c5.number_input("RR", value=0.0 if not curr else float(curr.get('rr', 0.0)), key="dj_rr")
 
     st.divider()
-    st.subheader("Confluences")
+    st.subheader("🔗 Analysis Links")
+    lc1, lc2 = st.columns(2)
+    htf_links = lc1.text_area("HTF Links (one link per line)",
+                              value="" if not curr else "\n".join(curr.get('htf_links', [])), key="dj_htf", height=100)
+    ltf_links = lc2.text_area("LTF Links (one link per line)",
+                              value="" if not curr else "\n".join(curr.get('ltf_links', [])), key="dj_ltf", height=100)
+
+    st.divider()
+    st.subheader("🧩 Confluences")
     cc1, cc2, cc3 = st.columns([2, 2, 1])
     sel_tf = cc1.selectbox("Timeframe", ["30s", "1m", "2m", "3m", "4m", "5m", "15m", "30m", "1h", "4h", "d"],
                            key="dj_sel_tf")
@@ -540,22 +537,15 @@ elif menu == "📝 Daily Journal":
                 st.rerun()
 
     st.divider()
-    c1, c2, c3 = st.columns(3)
-    outcome = c1.selectbox("Outcome", ["Win", "Loss", "Breakeven", "No Trade"],
-                           index=0 if not curr else ["Win", "Loss", "Breakeven", "No Trade"].index(curr['outcome']),
-                           key="dj_out")
-    pnl_val = c2.number_input("PnL ($)", value=0.0 if not curr else float(curr['pnl']), key="dj_pnl")
-    rr_val = c3.number_input("RR", value=0.0 if not curr else float(curr.get('rr', 0.0)), key="dj_rr")
+    st.subheader("📝 Reviews & Mistakes")
+    nc1, nc2, nc3 = st.columns(3)
+    notes = nc1.text_area("Notes", value="" if not curr else curr.get('notes', ''), key="dj_notes", height=150)
+    model_mistakes = nc2.text_area("Model Mistakes", value="" if not curr else curr.get('model_mistakes', ''),
+                                   key="dj_mod_mist", height=150)
+    mental_mistakes = nc3.text_area("Mental Mistakes", value="" if not curr else curr.get('mental_mistakes', ''),
+                                    key="dj_men_mist", height=150)
 
-    st.write("**Checklist**")
-    ch_cols = st.columns(3)
-    old_ch = curr['checklist'] if curr else [False] * 6
-    ch1 = ch_cols[0].checkbox("Good trading conditions?", value=old_ch[0], key="dj_ch1")
-    ch2 = ch_cols[1].checkbox("Trade aligns with HTF?", value=old_ch[1], key="dj_ch2")
-    ch3 = ch_cols[2].checkbox("Delivery from LTF keypoint?", value=old_ch[2], key="dj_ch3")
-    ch4 = ch_cols[0].checkbox("Good Draw of Liquidity?", value=old_ch[3], key="dj_ch4")
-    ch5 = ch_cols[1].checkbox("Good execution?", value=old_ch[4], key="dj_ch5")
-    ch6 = ch_cols[2].checkbox("Good mental during trading?", value=old_ch[5], key="dj_ch6")
+    st.divider()
 
     if st.button("💾 SAVE RECORD", use_container_width=True, key="dj_save"):
         new_data = {
@@ -564,7 +554,8 @@ elif menu == "📝 Daily Journal":
             "is_backtest": False,
             "notes": notes, "model_mistakes": model_mistakes, "mental_mistakes": mental_mistakes,
             "confluences": st.session_state.dj_temp_conf.copy(),
-            "checklist": [ch1, ch2, ch3, ch4, ch5, ch6], "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
+            "checklist": [False] * 6,  # Przekazanie pustej listy, by nie zepsuć struktury bazy
+            "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
             "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
             "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
             # Zachowujemy puste stare pola by nie zepsuć bazy
@@ -784,43 +775,43 @@ elif menu == "⏪ Backtesting":
             st.session_state.bt_current_edit_idx = st.session_state.editing_index
             st.session_state.bt_temp_conf = curr.get('confluences', []).copy() if curr else []
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Technical Setup")
-            ca1, ca2 = st.columns(2)
-            asset = ca1.selectbox("Asset", ["NQ", "MNQ", "ES", "MES", "XAUUSD"],
-                                  index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']),
-                                  key="bt_asset")
-            account_type = ca2.selectbox("Account Type", ["Backtesting"], disabled=True, key="bt_acc")
+        st.subheader("📌 Trade Details")
+        r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+        asset = r1c1.selectbox("Asset", ["NQ", "MNQ", "ES", "MES", "XAUUSD"],
+                               index=0 if not curr else ["NQ", "MNQ", "ES", "MES", "XAUUSD"].index(curr['asset']),
+                               key="bt_asset")
+        direction = r1c2.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
+                                   index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
+                                       curr.get('direction', 'Long')), key="bt_dir")
+        tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
+        trade_type = r1c3.selectbox("Type", tt_l,
+                                    index=0 if not curr or curr.get('trade_type') not in tt_l else tt_l.index(
+                                        curr['trade_type']), key="bt_tt")
+        account_type = r1c4.selectbox("Account Type", ["Backtesting"], disabled=True, key="bt_acc")
 
-            trade_date = st.date_input("Date",
-                                       date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date(),
-                                       key="bt_date")
-            direction = st.selectbox("Direction", ["Long", "Short", "Both", "No Trade"],
-                                     index=0 if not curr else ["Long", "Short", "Both", "No Trade"].index(
-                                         curr.get('direction', 'Long')), key="bt_dir")
-            exec_time = st.text_input("Time", value="" if not curr else curr['time'], key="bt_time")
-            st.write("---")
-            notes = st.text_area("Notes", value="" if not curr else curr.get('notes', ''), key="bt_notes", height=130)
-            htf_links = st.text_area("HTF Links", value="" if not curr else "\n".join(curr.get('htf_links', [])),
-                                     key="bt_htf")
-            ltf_links = st.text_area("LTF Links", value="" if not curr else "\n".join(curr.get('ltf_links', [])),
-                                     key="bt_ltf")
-
-        with col2:
-            st.subheader("Execution")
-            tt_l = ["Internal -> External", "External -> Internal", "Internal -> Internal", "-"]
-            trade_type = st.selectbox("Type", tt_l,
-                                      index=0 if not curr or curr.get('trade_type') not in tt_l else tt_l.index(
-                                          curr['trade_type']), key="bt_tt")
-            st.write("---")
-            model_mistakes = st.text_area("Model Mistakes", value="" if not curr else curr.get('model_mistakes', ''),
-                                          key="bt_mod_mist")
-            mental_mistakes = st.text_area("Mental Mistakes", value="" if not curr else curr.get('mental_mistakes', ''),
-                                           key="bt_men_mist")
+        r2c1, r2c2, r2c3, r2c4, r2c5 = st.columns(5)
+        trade_date = r2c1.date_input("Date",
+                                     date.today() if not curr else datetime.strptime(curr['date'], '%Y-%m-%d').date(),
+                                     key="bt_date")
+        exec_time = r2c2.text_input("Time", value="" if not curr else curr['time'], key="bt_time")
+        outcome = r2c3.selectbox("Outcome", ["Win", "Loss", "Breakeven", "No Trade"],
+                                 index=0 if not curr else ["Win", "Loss", "Breakeven", "No Trade"].index(
+                                     curr['outcome']), key="bt_out")
+        pnl_val = r2c4.number_input("PnL ($)", value=0.0 if not curr else float(curr['pnl']), key="bt_pnl")
+        rr_val = r2c5.number_input("RR", value=0.0 if not curr else float(curr.get('rr', 0.0)), key="bt_rr")
 
         st.divider()
-        st.subheader("Confluences")
+        st.subheader("🔗 Analysis Links")
+        lc1, lc2 = st.columns(2)
+        htf_links = lc1.text_area("HTF Links (one link per line)",
+                                  value="" if not curr else "\n".join(curr.get('htf_links', [])), key="bt_htf",
+                                  height=100)
+        ltf_links = lc2.text_area("LTF Links (one link per line)",
+                                  value="" if not curr else "\n".join(curr.get('ltf_links', [])), key="bt_ltf",
+                                  height=100)
+
+        st.divider()
+        st.subheader("🧩 Confluences")
         cc1, cc2, cc3 = st.columns([2, 2, 1])
         sel_tf = cc1.selectbox("Timeframe", ["30s", "1m", "2m", "3m", "4m", "5m", "15m", "30m", "1h", "4h", "d"],
                                key="bt_sel_tf")
@@ -840,22 +831,15 @@ elif menu == "⏪ Backtesting":
                     st.rerun()
 
         st.divider()
-        c1, c2, c3 = st.columns(3)
-        outcome = c1.selectbox("Outcome", ["Win", "Loss", "Breakeven", "No Trade"],
-                               index=0 if not curr else ["Win", "Loss", "Breakeven", "No Trade"].index(curr['outcome']),
-                               key="bt_out")
-        pnl_val = c2.number_input("PnL ($)", value=0.0 if not curr else float(curr['pnl']), key="bt_pnl")
-        rr_val = c3.number_input("RR", value=0.0 if not curr else float(curr.get('rr', 0.0)), key="bt_rr")
+        st.subheader("📝 Reviews & Mistakes")
+        nc1, nc2, nc3 = st.columns(3)
+        notes = nc1.text_area("Notes", value="" if not curr else curr.get('notes', ''), key="bt_notes", height=150)
+        model_mistakes = nc2.text_area("Model Mistakes", value="" if not curr else curr.get('model_mistakes', ''),
+                                       key="bt_mod_mist", height=150)
+        mental_mistakes = nc3.text_area("Mental Mistakes", value="" if not curr else curr.get('mental_mistakes', ''),
+                                        key="bt_men_mist", height=150)
 
-        st.write("**Checklist**")
-        ch_cols = st.columns(3)
-        old_ch = curr['checklist'] if curr else [False] * 6
-        ch1 = ch_cols[0].checkbox("Good trading conditions?", value=old_ch[0], key="bt_ch1")
-        ch2 = ch_cols[1].checkbox("Trade aligns with HTF?", value=old_ch[1], key="bt_ch2")
-        ch3 = ch_cols[2].checkbox("Delivery from LTF keypoint?", value=old_ch[2], key="bt_ch3")
-        ch4 = ch_cols[0].checkbox("Good Draw of Liquidity?", value=old_ch[3], key="bt_ch4")
-        ch5 = ch_cols[1].checkbox("Good execution?", value=old_ch[4], key="bt_ch5")
-        ch6 = ch_cols[2].checkbox("Good mental during trading?", value=old_ch[5], key="bt_ch6")
+        st.divider()
 
         if st.button("💾 SAVE BACKTEST RECORD", use_container_width=True, key="bt_save"):
             new_data = {
@@ -864,7 +848,8 @@ elif menu == "⏪ Backtesting":
                 "is_backtest": True,
                 "notes": notes, "model_mistakes": model_mistakes, "mental_mistakes": mental_mistakes,
                 "confluences": st.session_state.bt_temp_conf.copy(),
-                "checklist": [ch1, ch2, ch3, ch4, ch5, ch6], "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
+                "checklist": [False] * 6,  # Przekazanie pustej listy, by nie zepsuć struktury bazy
+                "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
                 "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
                 "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
                 "general_notes": "", "mood": "", "interfered": "No", "interfered_how": "",
