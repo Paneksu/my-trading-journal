@@ -1151,7 +1151,7 @@ elif menu == "📓 Trade Notes":
     with top_col1:
         st.markdown("<h3 style='margin-top: -10px;'>📓 Trade Notes</h3>", unsafe_allow_html=True)
 
-    notes_type = st.radio("Wybierz typ wpisów:", ["Normalne", "Backtesting"], horizontal=True)
+    notes_type = st.radio("Wybierz typ wpisów:", ["Live Trading", "Backtesting"], horizontal=True)
 
     if all_trades:
         is_bt_filter = True if notes_type == "Backtesting" else False
