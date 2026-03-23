@@ -74,6 +74,16 @@ st.markdown(f"""
         color: #ffffff !important;
     }}
 
+    /* Tło menu z gradiencie i oddzieleniem od reszty strony */
+    div.element-container:has(.nav-marker) + div.element-container > div[data-testid="stHorizontalBlock"] {{
+        background: {current_theme['bg_metric']};
+        padding: 12px 15px;
+        border-radius: 10px;
+        border-bottom: 3px solid {current_theme['accent']};
+        box-shadow: {current_theme['card_shadow']};
+        margin-bottom: 25px;
+    }}
+
     /* Kompresja kafelków Metrics */
     div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 5px 10px !important; border-radius: 8px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
     [data-testid="stMetricValue"] {{ font-size: 1.25rem !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
@@ -265,7 +275,7 @@ def back_to_dashboard():
     st.session_state.menu_nav = "📊 Dashboard"
 
 
-# Ujednolicony rendering detali transakcji w popupie
+# Ujednolicony rendering detali transakcji w popupie (całkowicie bez blokady "http")
 def render_trade_details(t):
     with st.container():
         h1, h2 = st.columns([3, 1])
@@ -286,15 +296,15 @@ def render_trade_details(t):
         st.markdown("---")
         c_htf, c_ltf = st.columns(2)
         with c_htf:
-            if any("http" in str(l) for l in t.get('htf_links', [])):
+            if any(str(l).strip() for l in t.get('htf_links', [])):
                 st.markdown("#### 🏛️ HTF Links")
                 for l in t.get('htf_links', []):
-                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
         with c_ltf:
-            if any("http" in str(l) for l in t.get('ltf_links', [])):
+            if any(str(l).strip() for l in t.get('ltf_links', [])):
                 st.markdown("#### ⚡ LTF Links")
                 for l in t.get('ltf_links', []):
-                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
         st.divider()
 
 
@@ -310,6 +320,8 @@ with head_col2:
         st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
         st.rerun()
 
+# Znacznik HTML do zaczepienia reguły CSS kolorującej tło menu nawigacyjnego
+st.markdown('<div class="nav-marker"></div>', unsafe_allow_html=True)
 menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
                 "📓 Trade Notes"]
 nav_cols = st.columns(len(menu_options))
@@ -320,13 +332,10 @@ for i, option in enumerate(menu_options):
         st.session_state.menu_nav = option
         st.rerun()
 
-st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px; border-color: " + current_theme['border'] + ";'>",
-            unsafe_allow_html=True)
 menu = st.session_state.menu_nav
 
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
-    # KOMPAKTOWY NAGŁÓWEK: Tytuł, filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
     c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
     c_t.markdown("<h3 style='margin-top: -15px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
     account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True, label_visibility="collapsed")
@@ -924,7 +933,6 @@ elif menu == "📜 Trades History":
                           use_container_width=True)
                 b2.button(f"🗑️ Delete", key=f"del_{idx}", on_click=delete_trade, args=(idx,), use_container_width=True)
 
-                # Ujednolicony podgląd dla nowego formatu Daily Journal oraz Backtesting
                 if t.get('is_backtest') or t.get('notes') or t.get('confluences'):
                     if t.get('notes'): st.info(f"**Notes:** {t['notes']}")
                     cm1, cm2 = st.columns(2)
@@ -938,17 +946,16 @@ elif menu == "📜 Trades History":
 
                     cl1, cl2 = st.columns(2)
                     with cl1:
-                        if any("http" in str(l) for l in t.get('htf_links', [])):
+                        if any(str(l).strip() for l in t.get('htf_links', [])):
                             st.markdown("### 🏛️ HTF Links")
                             for l in t.get('htf_links', []):
-                                if "http" in l: st.image(l.strip(), use_container_width=True)
+                                if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
                     with cl2:
-                        if any("http" in str(l) for l in t.get('ltf_links', [])):
+                        if any(str(l).strip() for l in t.get('ltf_links', [])):
                             st.markdown("### ⚡ LTF Links")
                             for l in t.get('ltf_links', []):
-                                if "http" in l: st.image(l.strip(), use_container_width=True)
+                                if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
 
-                # Kompatybilność wsteczna - zachowujemy podgląd dla starych wpisów przed zmianami
                 if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
                     st.markdown("---")
                     if t.get('general_notes'): st.info(f"**General Notes:** {t['general_notes']}")
@@ -1128,8 +1135,8 @@ elif menu == "📓 Trade Notes":
                or str(t.get('general_notes', '')).strip()
                or str(t.get('htf_desc', '')).strip()
                or str(t.get('ltf_desc', '')).strip()
-               or any("http" in str(link) for link in t.get('htf_links', []))
-               or any("http" in str(link) for link in t.get('ltf_links', []))
+               or any(str(link).strip() for link in t.get('htf_links', []))
+               or any(str(link).strip() for link in t.get('ltf_links', []))
         ]
 
         trades_with_notes = sorted(trades_with_notes, key=lambda x: x.get('date', ''), reverse=True)
@@ -1163,8 +1170,8 @@ elif menu == "📓 Trade Notes":
                         if str(t.get('htf_desc', '')).strip(): ch1.write(f"**🏛️ HTF Notes:** {t['htf_desc']}")
                         if str(t.get('ltf_desc', '')).strip(): ch2.write(f"**⚡ LTF Notes:** {t['ltf_desc']}")
 
-                    has_htf = bool([l for l in t.get('htf_links', []) if "http" in l])
-                    has_ltf = bool([l for l in t.get('ltf_links', []) if "http" in l])
+                    has_htf = bool([l for l in t.get('htf_links', []) if str(l).strip()])
+                    has_ltf = bool([l for l in t.get('ltf_links', []) if str(l).strip()])
 
                     if has_htf or has_ltf:
                         st.write("---")
@@ -1173,12 +1180,12 @@ elif menu == "📓 Trade Notes":
                             if has_htf:
                                 st.markdown("**🏛️ HTF Links**")
                                 for l in t.get('htf_links', []):
-                                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
                         with cl2:
                             if has_ltf:
                                 st.markdown("**⚡ LTF Links**")
                                 for l in t.get('ltf_links', []):
-                                    if "http" in l: st.image(l.strip(), use_container_width=True)
+                                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
 
                     st.markdown("<hr style='border-color: " + current_theme['border'] + ";'>", unsafe_allow_html=True)
         else:
