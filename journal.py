@@ -275,7 +275,69 @@ def back_to_dashboard():
     st.session_state.menu_nav = "📊 Dashboard"
 
 
-# Ujednolicony rendering detali transakcji w popupie (całkowicie bez blokady "http")
+# Ujednolicony rendering zawartości transakcji (odporny na zepsute linki)
+def render_trade_content(t):
+    if str(t.get('notes', '')).strip(): st.info(f"**📝 Notes:**\n{t['notes']}")
+    cm1, cm2 = st.columns(2)
+    if str(t.get('model_mistakes', '')).strip(): cm1.error(f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
+    if str(t.get('mental_mistakes', '')).strip(): cm2.warning(f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
+
+    if t.get('confluences'): st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
+
+    st.markdown("---")
+    c_htf, c_ltf = st.columns(2)
+    with c_htf:
+        valid_htf = [str(l).strip() for l in t.get('htf_links', []) if str(l).strip()]
+        if valid_htf:
+            st.markdown("#### 🏛️ HTF Links")
+            for link in valid_htf:
+                img_url = link if link.startswith("http") else "https://" + link
+                try:
+                    st.image(img_url, use_container_width=True)
+                except Exception:
+                    st.error("Wystąpił błąd przy ładowaniu wykresu.")
+                    st.markdown(f"🔗 [Otwórz link ręcznie]({img_url})")
+    with c_ltf:
+        valid_ltf = [str(l).strip() for l in t.get('ltf_links', []) if str(l).strip()]
+        if valid_ltf:
+            st.markdown("#### ⚡ LTF Links")
+            for link in valid_ltf:
+                img_url = link if link.startswith("http") else "https://" + link
+                try:
+                    st.image(img_url, use_container_width=True)
+                except Exception:
+                    st.error("Wystąpił błąd przy ładowaniu wykresu.")
+                    st.markdown(f"🔗 [Otwórz link ręcznie]({img_url})")
+
+    # Kompatybilność wsteczna (stare notatki)
+    if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
+        st.markdown("---")
+        if t.get('general_notes'): st.info(f"**📝 General Notes:**\n{t['general_notes']}")
+        ch1, ch2 = st.columns(2)
+        ch1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
+        if t.get('interfered') == 'Yes':
+            ch2.markdown(f"**⚠️ Interfered:** :red[{t.get('interfered_how', '-')}]")
+        else:
+            ch2.write("**🛡️ Interfered:** No")
+        st.write("---")
+        ca, cb = st.columns(2)
+        with ca:
+            if t.get('htf_keypoints') or t.get('htf_desc'):
+                st.markdown("#### 🏛️ HTF Analysis")
+                if t.get('htf_keypoints'): st.markdown(
+                    f"<div class='highlight-box'><b>HTF Key Points:</b><br>{t.get('htf_keypoints', 'N/A')}</div>",
+                    unsafe_allow_html=True)
+                if t.get('htf_desc'): st.write(f"**HTF Notes:** {t['htf_desc']}")
+        with cb:
+            if t.get('ltf_keypoints') or t.get('ltf_desc'):
+                st.markdown("#### ⚡ LTF Analysis")
+                if t.get('ltf_keypoints'): st.markdown(
+                    f"<div class='highlight-box'><b>LTF Key Points:</b><br>{t.get('ltf_keypoints', 'N/A')}</div>",
+                    unsafe_allow_html=True)
+                if t.get('ltf_desc'): st.write(f"**LTF Notes:** {t['ltf_desc']}")
+
+
+# Ujednolicony rendering detali w popupie (wykorzystuje render_trade_content)
 def render_trade_details(t):
     with st.container():
         h1, h2 = st.columns([3, 1])
@@ -285,27 +347,7 @@ def render_trade_details(t):
         acc_label = t.get('account_type', 'Funded') if not t.get('is_backtest') else "Backtesting"
         st.caption(f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {acc_label} | RR: {t.get('rr', 0.0)}")
 
-        if t.get('notes'): st.info(f"📝 {t['notes']}")
-
-        cm1, cm2 = st.columns(2)
-        if str(t.get('model_mistakes', '')).strip(): cm1.error(f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
-        if str(t.get('mental_mistakes', '')).strip(): cm2.warning(f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
-
-        if t.get('confluences'): st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
-
-        st.markdown("---")
-        c_htf, c_ltf = st.columns(2)
-        with c_htf:
-            if any(str(l).strip() for l in t.get('htf_links', [])):
-                st.markdown("#### 🏛️ HTF Links")
-                for l in t.get('htf_links', []):
-                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
-        with c_ltf:
-            if any(str(l).strip() for l in t.get('ltf_links', [])):
-                st.markdown("#### ⚡ LTF Links")
-                for l in t.get('ltf_links', []):
-                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
-        st.divider()
+        render_trade_content(t)
 
 
 # --- UI: TOP NAVBAR & WŁASNE MENU ---
@@ -339,7 +381,7 @@ if menu == "📊 Dashboard":
     c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
     c_t.markdown("<h3 style='margin-top: -15px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
     account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True, label_visibility="collapsed")
-    view_year = c_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
+    view_year = c_y.selectbox("Year", range(2000, 2031), index=range(2000, 2031).index(datetime.now().year),
                               label_visibility="collapsed")
     view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed")
 
@@ -603,10 +645,6 @@ elif menu == "⏪ Backtesting":
     df_bt = pd.DataFrame(bt_trades)
     if not df_bt.empty:
         df_bt['date'] = pd.to_datetime(df_bt['date'])
-        min_y = df_bt['date'].dt.year.min()
-        max_y = df_bt['date'].dt.year.max()
-    else:
-        min_y, max_y = 2024, 2025
 
     c_t, c_r, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
     c_t.markdown("<h3 style='margin-top: -15px;'>⏪ Backtesting</h3>", unsafe_allow_html=True)
@@ -615,9 +653,8 @@ elif menu == "⏪ Backtesting":
     st.session_state.bt_nav_section = bt_menu
 
     if bt_menu == "Dashboard":
-        view_year = c_y.selectbox("Year", range(min_y, max_y + 2), index=range(min_y, max_y + 2).index(
-            datetime.now().year) if datetime.now().year in range(min_y, max_y + 2) else 0, label_visibility="collapsed",
-                                  key="bt_cal_y")
+        view_year = c_y.selectbox("Year", range(2000, 2031), index=range(2000, 2031).index(datetime.now().year),
+                                  label_visibility="collapsed", key="bt_cal_y")
         view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed",
                                    key="bt_cal_m")
 
@@ -927,58 +964,12 @@ elif menu == "📜 Trades History":
 
             with st.expander(
                     f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} ${acc_label}"):
-
                 b1, b2, _ = st.columns([1, 1, 4])
                 b1.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,),
                           use_container_width=True)
                 b2.button(f"🗑️ Delete", key=f"del_{idx}", on_click=delete_trade, args=(idx,), use_container_width=True)
 
-                if t.get('is_backtest') or t.get('notes') or t.get('confluences'):
-                    if t.get('notes'): st.info(f"**Notes:** {t['notes']}")
-                    cm1, cm2 = st.columns(2)
-                    if str(t.get('model_mistakes', '')).strip(): cm1.error(
-                        f"**Model Mistakes:**\n{t.get('model_mistakes', '-')}")
-                    if str(t.get('mental_mistakes', '')).strip(): cm2.warning(
-                        f"**Mental Mistakes:**\n{t.get('mental_mistakes', '-')}")
-
-                    if t.get('confluences'): st.markdown(f"**Confluences:** {', '.join(t.get('confluences', []))}")
-                    st.write("---")
-
-                    cl1, cl2 = st.columns(2)
-                    with cl1:
-                        if any(str(l).strip() for l in t.get('htf_links', [])):
-                            st.markdown("### 🏛️ HTF Links")
-                            for l in t.get('htf_links', []):
-                                if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
-                    with cl2:
-                        if any(str(l).strip() for l in t.get('ltf_links', [])):
-                            st.markdown("### ⚡ LTF Links")
-                            for l in t.get('ltf_links', []):
-                                if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
-
-                if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
-                    st.markdown("---")
-                    if t.get('general_notes'): st.info(f"**General Notes:** {t['general_notes']}")
-                    ch1, ch2 = st.columns(2)
-                    ch1.write(f"**🧠 Mood:** {t.get('mood', '-')}")
-                    if t.get('interfered') == 'Yes':
-                        ch2.markdown(f"**⚠️ Interfered:** :red[{t.get('interfered_how', '-')}]")
-                    else:
-                        ch2.write("**🛡️ Interfered:** No")
-                    st.write("---")
-                    ca, cb = st.columns(2)
-                    with ca:
-                        st.markdown("### 🏛️ HTF Analysis")
-                        if t.get('htf_keypoints'): st.markdown(
-                            f"<div class='highlight-box'><b>HTF Key Points:</b><br>{t.get('htf_keypoints', 'N/A')}</div>",
-                            unsafe_allow_html=True)
-                        if t.get('htf_desc'): st.write(f"**HTF Notes:** {t['htf_desc']}")
-                    with cb:
-                        st.markdown("### ⚡ LTF Analysis")
-                        if t.get('ltf_keypoints'): st.markdown(
-                            f"<div class='highlight-box'><b>LTF Key Points:</b><br>{t.get('ltf_keypoints', 'N/A')}</div>",
-                            unsafe_allow_html=True)
-                        if t.get('ltf_desc'): st.write(f"**LTF Notes:** {t['ltf_desc']}")
+                render_trade_content(t)
     else:
         st.info("Brak tradów w historii.")
 
@@ -986,7 +977,7 @@ elif menu == "📜 Trades History":
 elif menu == "🗓️ Yearly Calendar":
     c_t, c_y, c_type = st.columns([1.5, 1, 2.5])
     c_t.markdown("<h3 style='margin-top: -15px;'>🗓️ Yearly Calendar</h3>", unsafe_allow_html=True)
-    view_year = c_y.selectbox("Select Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
+    view_year = c_y.selectbox("Select Year", range(2000, 2031), index=range(2000, 2031).index(datetime.now().year),
                               label_visibility="collapsed", key="yc_view_year")
     yc_type = c_type.radio("Type:", ["Live Trading", "Backtesting"], horizontal=True, label_visibility="collapsed",
                            key="yc_type")
@@ -1154,38 +1145,7 @@ elif menu == "📓 Trade Notes":
                         f"**PnL:** <span style='color:{pnl_c}; font-weight:bold;'>{float(t.get('pnl', 0)):+.1f} $</span> &nbsp;|&nbsp; **RR:** {t.get('rr', 0.0)}",
                         unsafe_allow_html=True)
 
-                    if str(t.get('notes', '')).strip(): st.info(f"**📝 Notes:**\n{t['notes']}")
-                    if str(t.get('general_notes', '')).strip(): st.info(f"**📝 General Notes:**\n{t['general_notes']}")
-
-                    cm1, cm2 = st.columns(2)
-                    if str(t.get('model_mistakes', '')).strip(): cm1.error(
-                        f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
-                    if str(t.get('mental_mistakes', '')).strip(): cm2.warning(
-                        f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
-
-                    if t.get('confluences'): st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
-
-                    if str(t.get('htf_desc', '')).strip() or str(t.get('ltf_desc', '')).strip():
-                        ch1, ch2 = st.columns(2)
-                        if str(t.get('htf_desc', '')).strip(): ch1.write(f"**🏛️ HTF Notes:** {t['htf_desc']}")
-                        if str(t.get('ltf_desc', '')).strip(): ch2.write(f"**⚡ LTF Notes:** {t['ltf_desc']}")
-
-                    has_htf = bool([l for l in t.get('htf_links', []) if str(l).strip()])
-                    has_ltf = bool([l for l in t.get('ltf_links', []) if str(l).strip()])
-
-                    if has_htf or has_ltf:
-                        st.write("---")
-                        cl1, cl2 = st.columns(2)
-                        with cl1:
-                            if has_htf:
-                                st.markdown("**🏛️ HTF Links**")
-                                for l in t.get('htf_links', []):
-                                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
-                        with cl2:
-                            if has_ltf:
-                                st.markdown("**⚡ LTF Links**")
-                                for l in t.get('ltf_links', []):
-                                    if str(l).strip(): st.image(str(l).strip(), use_container_width=True)
+                    render_trade_content(t)
 
                     st.markdown("<hr style='border-color: " + current_theme['border'] + ";'>", unsafe_allow_html=True)
         else:
