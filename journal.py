@@ -76,16 +76,16 @@ st.markdown(f"""
         color: #ffffff !important;
     }}
 
-    /* Tło menu w gradiencie i solidna linia oddzielająca od reszty strony */
-    div[data-testid="stHorizontalBlock"]:has(.nav-marker) {{
+    /* Tło dla połączonego bloku nagłówka i menu (Gradient + Odcięcie na dole) */
+    div.element-container:has(.header-container-marker) + div.element-container > div[data-testid="stVerticalBlock"] {{
         background: {current_theme['menu_bg']};
-        padding: 15px 20px;
+        padding: 20px 25px 15px 25px;
         border-radius: 12px;
         border-bottom: 4px solid {current_theme['accent']};
         box-shadow: {current_theme['card_shadow']};
-        margin-top: 10px;
+    }}
+    div.element-container:has(.header-container-marker) + div.element-container {{
         margin-bottom: 30px;
-        align-items: center;
     }}
 
     /* Kompresja kafelków Metrics */
@@ -285,7 +285,7 @@ def back_to_dashboard():
     st.session_state.menu_nav = "📊 Dashboard"
 
 
-# Ujednolicony rendering zawartości transakcji (odporny na zepsute linki, brak ucinania "http")
+# Ujednolicony rendering zawartości transakcji (pełen wyświetlacz linków bez restrykcji .png/http)
 def render_trade_content(t):
     if str(t.get('notes', '')).strip(): st.info(f"**📝 Notes:**\n{t['notes']}")
     cm1, cm2 = st.columns(2)
@@ -297,33 +297,31 @@ def render_trade_content(t):
     st.markdown("---")
     c_htf, c_ltf = st.columns(2)
     with c_htf:
-        if t.get('htf_links'):
+        valid_htf = [str(l).strip() for l in t.get('htf_links', []) if str(l).strip()]
+        if valid_htf:
             st.markdown("#### 🏛️ HTF Links")
-            for link in t.get('htf_links', []):
-                link_str = str(link).strip()
-                if link_str and link_str.lower() not in ["-", "false", "[]"]:
-                    url = link_str if link_str.startswith("http") else "https://" + link_str
-                    st.markdown(
-                        f"🔗 <a href='{url}' target='_blank' style='color:{current_theme['accent']}; font-weight:bold;'>Otwórz link do wykresu</a>",
-                        unsafe_allow_html=True)
-                    try:
-                        st.image(url, use_container_width=True)
-                    except Exception:
-                        pass  # Jeśli nie uda się wyrenderować zdjęcia w Streamlit (bo np. to link do strony, a nie czystego png), po prostu zignoruj - użytkownik ma klikalny link wyżej.
+            for link in valid_htf:
+                url = link if link.startswith("http") else "https://" + link
+                st.markdown(
+                    f"🔗 <a href='{url}' target='_blank' style='color:{current_theme['accent']}; font-weight:bold;'>Otwórz link do wykresu</a>",
+                    unsafe_allow_html=True)
+                try:
+                    st.image(url, use_container_width=True)
+                except Exception:
+                    pass
     with c_ltf:
-        if t.get('ltf_links'):
+        valid_ltf = [str(l).strip() for l in t.get('ltf_links', []) if str(l).strip()]
+        if valid_ltf:
             st.markdown("#### ⚡ LTF Links")
-            for link in t.get('ltf_links', []):
-                link_str = str(link).strip()
-                if link_str and link_str.lower() not in ["-", "false", "[]"]:
-                    url = link_str if link_str.startswith("http") else "https://" + link_str
-                    st.markdown(
-                        f"🔗 <a href='{url}' target='_blank' style='color:{current_theme['accent']}; font-weight:bold;'>Otwórz link do wykresu</a>",
-                        unsafe_allow_html=True)
-                    try:
-                        st.image(url, use_container_width=True)
-                    except Exception:
-                        pass
+            for link in valid_ltf:
+                url = link if link.startswith("http") else "https://" + link
+                st.markdown(
+                    f"🔗 <a href='{url}' target='_blank' style='color:{current_theme['accent']}; font-weight:bold;'>Otwórz link do wykresu</a>",
+                    unsafe_allow_html=True)
+                try:
+                    st.image(url, use_container_width=True)
+                except Exception:
+                    pass
 
     # Kompatybilność wsteczna (stare notatki)
     if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
@@ -366,30 +364,27 @@ def render_trade_details(t):
         render_trade_content(t)
 
 
-# --- UI: TOP NAVBAR & WŁASNE MENU ---
-head_col1, head_col2 = st.columns([20, 1])
-with head_col1:
-    st.markdown(
-        f"<h2 style='margin-top: -15px; color: {current_theme['text_primary']};'>📘 NQPaneksu <span style='color: {current_theme['accent']};'>Journal</span></h2>",
-        unsafe_allow_html=True)
-with head_col2:
-    btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
-    if st.button(btn_icon, key="theme_toggle"):
-        st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
-        st.rerun()
+# --- UI: TOP NAVBAR W ZAMKNIĘTYM KONTENERZE ---
+st.markdown('<div class="header-container-marker" style="display:none;"></div>', unsafe_allow_html=True)
+with st.container():
+    head_col1, head_col2 = st.columns([20, 1])
+    with head_col1:
+        st.markdown(
+            f"<h2 style='margin-top: 0px; margin-bottom: 15px; color: {current_theme['text_primary']};'>📘 NQPaneksu <span style='color: {current_theme['accent']};'>Journal</span></h2>",
+            unsafe_allow_html=True)
+    with head_col2:
+        btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
+        if st.button(btn_icon, key="theme_toggle"):
+            st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
+            st.rerun()
 
-menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
-                "📓 Trade Notes"]
-nav_cols = st.columns(len(menu_options))
-
-# Zaczepienie reguły CSS do poziomego bloku - znacznik musi być wewnątrz kolumny!
-nav_cols[0].markdown('<span class="nav-marker" style="display:none;"></span>', unsafe_allow_html=True)
-
-for i, option in enumerate(menu_options):
-    is_active = st.session_state.menu_nav == option
-    # Używamy on_click, by nie wymuszać bezpośredniego st.rerun() i nie "gubić" stanu interfejsu (zapobiega resetowaniu wpisywania tekstu)
-    nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True, type="primary" if is_active else "secondary",
-                       on_click=change_menu, args=(option,))
+    menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
+                    "📓 Trade Notes"]
+    nav_cols = st.columns(len(menu_options))
+    for i, option in enumerate(menu_options):
+        is_active = st.session_state.menu_nav == option
+        nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True,
+                           type="primary" if is_active else "secondary", on_click=change_menu, args=(option,))
 
 menu = st.session_state.menu_nav
 
