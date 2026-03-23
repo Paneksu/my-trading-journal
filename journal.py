@@ -29,7 +29,7 @@ themes = {
         "bg_sidebar": "#121218",
         "bg_card": "#1d1d27",
         "bg_metric": "linear-gradient(135deg, #1d1d27 0%, #251d30 100%)",
-        "menu_bg": "linear-gradient(90deg, #1d1d27 0%, #2a2a35 100%)",
+        "menu_bg": "linear-gradient(135deg, #1d1d27 0%, #2a2a35 100%)",
         "border": "#3a3a4a",
         "text_primary": "#eaeaea",
         "text_secondary": "#b4b4b4",
@@ -43,7 +43,7 @@ themes = {
         "bg_sidebar": "#ffffff",
         "bg_card": "#ffffff",
         "bg_metric": "linear-gradient(135deg, #ffffff 0%, #eadaff 100%)",
-        "menu_bg": "linear-gradient(90deg, #ffffff 0%, #e0e7ff 100%)",
+        "menu_bg": "linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%)",
         "border": "#d2dbe3",
         "text_primary": "#202538",
         "text_secondary": "#5a627a",
@@ -76,15 +76,13 @@ st.markdown(f"""
         color: #ffffff !important;
     }}
 
-    /* Tło dla połączonego bloku nagłówka i menu (Gradient + Odcięcie na dole) */
-    div.element-container:has(.header-container-marker) + div.element-container > div[data-testid="stVerticalBlock"] {{
+    /* Tło menu w gradiencie i solidna linia oddzielająca od reszty strony */
+    div.element-container:has(.nav-marker) + div.element-container > div[data-testid="stHorizontalBlock"] {{
         background: {current_theme['menu_bg']};
-        padding: 20px 25px 15px 25px;
+        padding: 15px 20px;
         border-radius: 12px;
         border-bottom: 4px solid {current_theme['accent']};
         box-shadow: {current_theme['card_shadow']};
-    }}
-    div.element-container:has(.header-container-marker) + div.element-container {{
         margin-bottom: 30px;
     }}
 
@@ -285,7 +283,7 @@ def back_to_dashboard():
     st.session_state.menu_nav = "📊 Dashboard"
 
 
-# Ujednolicony rendering zawartości transakcji (pełen wyświetlacz linków bez restrykcji .png/http)
+# Ujednolicony rendering zawartości transakcji (odporny na zepsute linki, całkowicie bez filtra http)
 def render_trade_content(t):
     if str(t.get('notes', '')).strip(): st.info(f"**📝 Notes:**\n{t['notes']}")
     cm1, cm2 = st.columns(2)
@@ -301,27 +299,23 @@ def render_trade_content(t):
         if valid_htf:
             st.markdown("#### 🏛️ HTF Links")
             for link in valid_htf:
-                url = link if link.startswith("http") else "https://" + link
-                st.markdown(
-                    f"🔗 <a href='{url}' target='_blank' style='color:{current_theme['accent']}; font-weight:bold;'>Otwórz link do wykresu</a>",
-                    unsafe_allow_html=True)
+                img_url = link if link.startswith("http") else "https://" + link
                 try:
-                    st.image(url, use_container_width=True)
+                    st.image(img_url, use_container_width=True)
                 except Exception:
-                    pass
+                    st.error("Nie udało się załadować podglądu (błędny link).")
+                    st.markdown(f"🔗 [Otwórz link ręcznie]({img_url})")
     with c_ltf:
         valid_ltf = [str(l).strip() for l in t.get('ltf_links', []) if str(l).strip()]
         if valid_ltf:
             st.markdown("#### ⚡ LTF Links")
             for link in valid_ltf:
-                url = link if link.startswith("http") else "https://" + link
-                st.markdown(
-                    f"🔗 <a href='{url}' target='_blank' style='color:{current_theme['accent']}; font-weight:bold;'>Otwórz link do wykresu</a>",
-                    unsafe_allow_html=True)
+                img_url = link if link.startswith("http") else "https://" + link
                 try:
-                    st.image(url, use_container_width=True)
+                    st.image(img_url, use_container_width=True)
                 except Exception:
-                    pass
+                    st.error("Nie udało się załadować podglądu (błędny link).")
+                    st.markdown(f"🔗 [Otwórz link ręcznie]({img_url})")
 
     # Kompatybilność wsteczna (stare notatki)
     if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
@@ -364,27 +358,28 @@ def render_trade_details(t):
         render_trade_content(t)
 
 
-# --- UI: TOP NAVBAR W ZAMKNIĘTYM KONTENERZE ---
-st.markdown('<div class="header-container-marker" style="display:none;"></div>', unsafe_allow_html=True)
-with st.container():
-    head_col1, head_col2 = st.columns([20, 1])
-    with head_col1:
-        st.markdown(
-            f"<h2 style='margin-top: 0px; margin-bottom: 15px; color: {current_theme['text_primary']};'>📘 NQPaneksu <span style='color: {current_theme['accent']};'>Journal</span></h2>",
-            unsafe_allow_html=True)
-    with head_col2:
-        btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
-        if st.button(btn_icon, key="theme_toggle"):
-            st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
-            st.rerun()
+# --- UI: TOP NAVBAR & WŁASNE MENU ---
+head_col1, head_col2 = st.columns([20, 1])
+with head_col1:
+    st.markdown(
+        f"<h2 style='margin-top: -15px; color: {current_theme['text_primary']};'>📘 NQPaneksu <span style='color: {current_theme['accent']};'>Journal</span></h2>",
+        unsafe_allow_html=True)
+with head_col2:
+    btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
+    if st.button(btn_icon, key="theme_toggle"):
+        st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
+        st.rerun()
 
-    menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
-                    "📓 Trade Notes"]
-    nav_cols = st.columns(len(menu_options))
-    for i, option in enumerate(menu_options):
-        is_active = st.session_state.menu_nav == option
-        nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True,
-                           type="primary" if is_active else "secondary", on_click=change_menu, args=(option,))
+# Znacznik HTML do zaczepienia reguły CSS kolorującej tło menu nawigacyjnego
+st.markdown('<div class="nav-marker"></div>', unsafe_allow_html=True)
+menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
+                "📓 Trade Notes"]
+nav_cols = st.columns(len(menu_options))
+for i, option in enumerate(menu_options):
+    is_active = st.session_state.menu_nav == option
+    # Używamy on_click zamiast manualnego st.rerun(), żeby zapobiec bugom z utratą stanu sesji!
+    nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True, type="primary" if is_active else "secondary",
+                       on_click=change_menu, args=(option,))
 
 menu = st.session_state.menu_nav
 
@@ -665,9 +660,8 @@ elif menu == "⏪ Backtesting":
     st.session_state.bt_nav_section = bt_menu
 
     if bt_menu == "Dashboard":
-        view_year = c_y.selectbox("Year", range(2000, 2031),
-                                  index=range(2000, 2031).index(datetime.now().year) if datetime.now().year in range(
-                                      2000, 2031) else 0, label_visibility="collapsed", key="bt_cal_y")
+        view_year = c_y.selectbox("Year", range(2000, 2031), index=range(2000, 2031).index(datetime.now().year),
+                                  label_visibility="collapsed", key="bt_cal_y")
         view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed",
                                    key="bt_cal_m")
 
