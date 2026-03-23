@@ -29,6 +29,7 @@ themes = {
         "bg_sidebar": "#121218",
         "bg_card": "#1d1d27",
         "bg_metric": "linear-gradient(135deg, #1d1d27 0%, #251d30 100%)",
+        "menu_bg": "linear-gradient(135deg, #1d1d27 0%, #2a2a35 100%)",
         "border": "#3a3a4a",
         "text_primary": "#eaeaea",
         "text_secondary": "#b4b4b4",
@@ -42,6 +43,7 @@ themes = {
         "bg_sidebar": "#ffffff",
         "bg_card": "#ffffff",
         "bg_metric": "linear-gradient(135deg, #ffffff 0%, #eadaff 100%)",
+        "menu_bg": "linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%)",
         "border": "#d2dbe3",
         "text_primary": "#202538",
         "text_secondary": "#5a627a",
@@ -74,14 +76,14 @@ st.markdown(f"""
         color: #ffffff !important;
     }}
 
-    /* Tło menu z gradiencie i oddzieleniem od reszty strony */
+    /* Tło menu w gradiencie i solidna linia oddzielająca od reszty strony */
     div.element-container:has(.nav-marker) + div.element-container > div[data-testid="stHorizontalBlock"] {{
-        background: {current_theme['bg_metric']};
-        padding: 12px 15px;
-        border-radius: 10px;
-        border-bottom: 3px solid {current_theme['accent']};
+        background: {current_theme['menu_bg']};
+        padding: 15px 20px;
+        border-radius: 12px;
+        border-bottom: 4px solid {current_theme['accent']};
         box-shadow: {current_theme['card_shadow']};
-        margin-bottom: 25px;
+        margin-bottom: 30px;
     }}
 
     /* Kompresja kafelków Metrics */
@@ -242,6 +244,12 @@ all_trades = st.session_state.all_trades
 
 
 # --- FUNKCJE CALLBACK ---
+def change_menu(opt):
+    st.session_state.menu_nav = opt
+    if opt != "📜 Trades History" and 'history_filter_date' in st.session_state:
+        del st.session_state.history_filter_date
+
+
 def go_to_edit_mode(index):
     st.session_state.editing_index = index
     if st.session_state.all_trades[index].get('is_backtest', False):
@@ -275,7 +283,7 @@ def back_to_dashboard():
     st.session_state.menu_nav = "📊 Dashboard"
 
 
-# Ujednolicony rendering zawartości transakcji (odporny na zepsute linki)
+# Ujednolicony rendering zawartości transakcji (odporny na zepsute linki, całkowicie bez filtra http)
 def render_trade_content(t):
     if str(t.get('notes', '')).strip(): st.info(f"**📝 Notes:**\n{t['notes']}")
     cm1, cm2 = st.columns(2)
@@ -295,7 +303,7 @@ def render_trade_content(t):
                 try:
                     st.image(img_url, use_container_width=True)
                 except Exception:
-                    st.error("Wystąpił błąd przy ładowaniu wykresu.")
+                    st.error("Nie udało się załadować podglądu (błędny link).")
                     st.markdown(f"🔗 [Otwórz link ręcznie]({img_url})")
     with c_ltf:
         valid_ltf = [str(l).strip() for l in t.get('ltf_links', []) if str(l).strip()]
@@ -306,7 +314,7 @@ def render_trade_content(t):
                 try:
                     st.image(img_url, use_container_width=True)
                 except Exception:
-                    st.error("Wystąpił błąd przy ładowaniu wykresu.")
+                    st.error("Nie udało się załadować podglądu (błędny link).")
                     st.markdown(f"🔗 [Otwórz link ręcznie]({img_url})")
 
     # Kompatybilność wsteczna (stare notatki)
@@ -337,7 +345,7 @@ def render_trade_content(t):
                 if t.get('ltf_desc'): st.write(f"**LTF Notes:** {t['ltf_desc']}")
 
 
-# Ujednolicony rendering detali w popupie (wykorzystuje render_trade_content)
+# Ujednolicony rendering detali w popupie
 def render_trade_details(t):
     with st.container():
         h1, h2 = st.columns([3, 1])
@@ -369,10 +377,9 @@ menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "
 nav_cols = st.columns(len(menu_options))
 for i, option in enumerate(menu_options):
     is_active = st.session_state.menu_nav == option
-    if nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True,
-                          type="primary" if is_active else "secondary"):
-        st.session_state.menu_nav = option
-        st.rerun()
+    # Używamy on_click zamiast manualnego st.rerun(), żeby zapobiec bugom z utratą stanu sesji!
+    nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True, type="primary" if is_active else "secondary",
+                       on_click=change_menu, args=(option,))
 
 menu = st.session_state.menu_nav
 
