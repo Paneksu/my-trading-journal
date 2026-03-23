@@ -6,7 +6,7 @@ import json
 from streamlit_gsheets import GSheetsConnection
 
 # --- KONFIGURACJA POCZĄTKOWA ---
-st.set_page_config(page_title="NQPaneksu Journal", layout="wide")
+st.set_page_config(page_title="NQPaneksu Journal", layout="wide", initial_sidebar_state="collapsed")
 
 # --- ZARZĄDZANIE MOTYWEM I STANEM ---
 if 'theme' not in st.session_state:
@@ -22,7 +22,7 @@ if st.session_state.get('navigate_to_history'):
 if 'bt_nav_section' not in st.session_state:
     st.session_state.bt_nav_section = "Dashboard"
 
-# --- DEFINICJA KOLORÓW DLA MOTYWÓW (ROZJAŚNIONE) ---
+# --- DEFINICJA KOLORÓW DLA MOTYWÓW ---
 themes = {
     "Dark": {
         "bg_app": "#16161e",
@@ -54,25 +54,25 @@ themes = {
 
 current_theme = themes[st.session_state.theme]
 
-# --- UI: PRZYCISK ZMIANY MOTYWU ---
-top_col1, top_col2 = st.columns([20, 1])
-with top_col2:
-    btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
-    if st.button(btn_icon, key="theme_toggle"):
-        st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
-        st.rerun()
-
-# --- INJECT CSS (Z KOMPRESJĄ DLA DASHBOARDU) ---
+# --- INJECT CSS (Z KOMPRESJĄ I WŁASNYM MENU) ---
 st.markdown(f"""
     <style>
-    /* Ukrycie domyślnego nagłówka Streamlit (m.in. przycisku Fork i Menu) */
+    /* Ukrycie domyślnego nagłówka i całkowite usunięcie sidebaru Streamlit */
     [data-testid="stHeader"] {{ display: none !important; }}
+    [data-testid="stSidebar"] {{ display: none !important; }}
+    [data-testid="collapsedControl"] {{ display: none !important; }}
 
-    /* Agresywna redukcja pustych przestrzeni - kompresja widoku na 1 stronę */
+    /* Kompresja widoku */
     .block-container {{ padding-top: 1rem; padding-bottom: 0rem; max-width: 98%; }}
 
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
-    [data-testid="stSidebar"] {{ background-color: {current_theme['bg_sidebar']}; border-right: 1px solid {current_theme['border']}; }}
+
+    /* Stylowanie aktywnych przycisków w menu nawigacyjnym */
+    button[kind="primary"] {{
+        background-color: {current_theme['accent']} !important;
+        border-color: {current_theme['accent']} !important;
+        color: #ffffff !important;
+    }}
 
     /* Kompresja kafelków Metrics */
     div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 5px 10px !important; border-radius: 8px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
@@ -82,7 +82,9 @@ st.markdown(f"""
     h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
     .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
     div[data-testid="stButton"] button {{ border: 1px solid {current_theme['border']}; background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; font-weight: bold; box-shadow: {current_theme['card_shadow']}; }}
-    div[data-testid="column"] div[data-testid="stButton"] button {{ border-radius: 50%; width: 45px; height: 45px; }}
+
+    /* Poprawka dla okrągłych przycisków ikonek jeśli są same w kolumnie */
+    div[data-testid="column"]:last-child div[data-testid="stButton"] button {{ border-radius: 50%; width: 45px; height: 45px; margin-left: auto; }}
 
     [data-testid="stImage"] {{ overflow: visible !important; position: relative !important; }}
     button[title="View fullscreen"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: 2.5rem !important; height: 2.5rem !important; right: 0.5rem !important; top: 0.5rem !important; z-index: 999999 !important; cursor: pointer !important; border-radius: 8px !important; align-items: center !important; justify-content: center !important; transition: background-color 0.2s !important; }}
@@ -158,17 +160,14 @@ def load_data_from_gsheets():
             except:
                 row['pnl'] = 0.0
 
-            # Pobieranie i rzutowanie nowej zmiennej RR
             try:
                 rr_str = str(row.get('rr', 0)).replace(',', '.')
                 row['rr'] = float(rr_str) if rr_str else 0.0
             except:
                 row['rr'] = 0.0
 
-            # Wsteczna kompatybilność: domyślnie 'Funded' dla starych danych
             row['account_type'] = row.get('account_type') if row.get('account_type') else 'Funded'
 
-            # Nowe pola dla Backtestingu (i ujednoliconego Journala) z UODPORNIENIEM
             bt_val = row.get('is_backtest', False)
             if isinstance(bt_val, str):
                 row['is_backtest'] = bt_val.strip().lower() in ['true', '1', '1.0', 't', 'y', 'yes']
@@ -196,7 +195,6 @@ def load_data_from_gsheets():
 
 
 def save_all_data(data):
-    # Dodano kolumnę 'rr'
     columns = ['date', 'asset', 'direction', 'time', 'trade_type', 'account_type', 'outcome', 'pnl', 'rr',
                'general_notes', 'mood', 'interfered', 'interfered_how', 'htf_desc', 'htf_keypoints',
                'htf_links', 'ltf_desc', 'ltf_keypoints', 'ltf_links', 'checklist',
@@ -213,15 +211,12 @@ def save_all_data(data):
         new_row['checklist'] = json.dumps(row.get('checklist', [False] * 6))
         new_row['confluences'] = json.dumps(row.get('confluences', []))
 
-        # Zabezpieczenie brakujących kolumn i rzutowanie wartości
         for col in columns:
             if col not in new_row:
                 new_row[col] = "" if col not in ['is_backtest', 'confluences', 'checklist', 'htf_links',
                                                  'ltf_links'] else False if col == 'is_backtest' else []
 
-        # Wymuszenie zapisu jako boolean
         new_row['is_backtest'] = bool(new_row.get('is_backtest', False))
-
         data_to_save.append(new_row)
 
     df = pd.DataFrame(data_to_save)
@@ -270,30 +265,77 @@ def back_to_dashboard():
     st.session_state.menu_nav = "📊 Dashboard"
 
 
-# --- SIDEBAR MENU ---
-with st.sidebar:
-    st.title("📘 NQPaneksu Journal")
-    menu = st.radio("MAIN MENU",
-                    ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
-                     "📓 Trade Notes"], key="menu_nav")
-    st.divider()
+# Ujednolicony rendering detali transakcji w popupie
+def render_trade_details(t):
+    with st.container():
+        h1, h2 = st.columns([3, 1])
+        h1.markdown(f"### {t['asset']} ({t['direction']})")
+        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
+        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>", unsafe_allow_html=True)
+        acc_label = t.get('account_type', 'Funded') if not t.get('is_backtest') else "Backtesting"
+        st.caption(f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {acc_label} | RR: {t.get('rr', 0.0)}")
+
+        if t.get('notes'): st.info(f"📝 {t['notes']}")
+
+        cm1, cm2 = st.columns(2)
+        if str(t.get('model_mistakes', '')).strip(): cm1.error(f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
+        if str(t.get('mental_mistakes', '')).strip(): cm2.warning(f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
+
+        if t.get('confluences'): st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
+
+        st.markdown("---")
+        c_htf, c_ltf = st.columns(2)
+        with c_htf:
+            if any("http" in str(l) for l in t.get('htf_links', [])):
+                st.markdown("#### 🏛️ HTF Links")
+                for l in t.get('htf_links', []):
+                    if "http" in l: st.image(l.strip(), use_container_width=True)
+        with c_ltf:
+            if any("http" in str(l) for l in t.get('ltf_links', [])):
+                st.markdown("#### ⚡ LTF Links")
+                for l in t.get('ltf_links', []):
+                    if "http" in l: st.image(l.strip(), use_container_width=True)
+        st.divider()
+
+
+# --- UI: TOP NAVBAR & WŁASNE MENU ---
+head_col1, head_col2 = st.columns([20, 1])
+with head_col1:
+    st.markdown(
+        f"<h2 style='margin-top: -15px; color: {current_theme['text_primary']};'>📘 NQPaneksu <span style='color: {current_theme['accent']};'>Journal</span></h2>",
+        unsafe_allow_html=True)
+with head_col2:
+    btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
+    if st.button(btn_icon, key="theme_toggle"):
+        st.session_state.theme = "Light" if st.session_state.theme == "Dark" else "Dark"
+        st.rerun()
+
+menu_options = ["📊 Dashboard", "📝 Daily Journal", "📜 Trades History", "⏪ Backtesting", "🗓️ Yearly Calendar",
+                "📓 Trade Notes"]
+nav_cols = st.columns(len(menu_options))
+for i, option in enumerate(menu_options):
+    is_active = st.session_state.menu_nav == option
+    if nav_cols[i].button(option, key=f"nav_{i}", use_container_width=True,
+                          type="primary" if is_active else "secondary"):
+        st.session_state.menu_nav = option
+        st.rerun()
+
+st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px; border-color: " + current_theme['border'] + ";'>",
+            unsafe_allow_html=True)
+menu = st.session_state.menu_nav
 
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
-    with top_col1:
-        # KOMPAKTOWY NAGŁÓWEK: Tytuł, filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
-        c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-        c_t.markdown("<h3 style='margin-top: -15px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
-        account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True,
-                                   label_visibility="collapsed")
-        view_year = c_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
-                                  label_visibility="collapsed")
-        view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed")
+    # KOMPAKTOWY NAGŁÓWEK: Tytuł, filtry konta oraz nawigacja rokiem i miesiącem w jednej linii
+    c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
+    c_t.markdown("<h3 style='margin-top: -15px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
+    account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True, label_visibility="collapsed")
+    view_year = c_y.selectbox("Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
+                              label_visibility="collapsed")
+    view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed")
 
     if all_trades:
-        # Filtrowanie tablicy omijające Backtesty
         base_trades = [t for t in all_trades if not t.get('is_backtest', False)]
-
         if account_filter == "All":
             filtered_trades = base_trades
         else:
@@ -303,23 +345,18 @@ if menu == "📊 Dashboard":
 
         if not df.empty:
             df['date'] = pd.to_datetime(df['date'])
-
             total_pnl = df['pnl'].sum()
             total_valid = len(df[df['direction'] != 'No Trade'])
-
             wins_df = df[df['pnl'] > 0]
             losses_df = df[df['pnl'] < 0]
-
             wins_count = len(wins_df)
             losses_count = len(losses_df)
-
             gross_profit = wins_df['pnl'].sum()
             gross_loss = abs(losses_df['pnl'].sum())
 
             wr = (wins_count / total_valid * 100) if total_valid > 0 else 0
             avg_win = (gross_profit / wins_count) if wins_count > 0 else 0
             avg_loss = (gross_loss / losses_count) if losses_count > 0 else 0
-
             profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (
                 float('inf') if gross_profit > 0 else 0.0)
 
@@ -328,16 +365,13 @@ if menu == "📊 Dashboard":
             c2.metric("Win Rate", f"{wr:.1f}%")
             c3.metric("Avg Win", f"{avg_win:+.1f} $")
             c4.metric("Avg Loss", f"{-avg_loss:+.1f} $")
-
             pf_display = "∞" if profit_factor == float('inf') else f"{profit_factor:.2f}"
             c5.metric("Profit Factor", pf_display)
             c6.metric("Trades", total_valid)
         else:
             st.info(f"Brak danych dla wybranego filtru: {account_filter}")
 
-        # Niewielki separator wizualny bez strat miejsca
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
         cal = calendar.monthcalendar(view_year, view_month)
 
         cols = st.columns(7)
@@ -364,7 +398,7 @@ if menu == "📊 Dashboard":
 
             cols = st.columns(7)
             for i, day in enumerate(week):
-                if i == 6:  # Niedziela
+                if i == 6:
                     bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
                         'text_primary'], current_theme['text_secondary']
                     if weekly_pnl > 0:
@@ -392,27 +426,7 @@ if menu == "📊 Dashboard":
                             st.divider()
                             sunday_trades = [t for t in filtered_trades if t['date'] == str(curr_date_sunday)]
                             if sunday_trades:
-                                for t in sunday_trades:
-                                    with st.container():
-                                        h1, h2 = st.columns([3, 1])
-                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                    unsafe_allow_html=True)
-                                        st.caption(
-                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
-                                        if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                        st.markdown("---")
-                                        c_htf, c_ltf = st.columns(2)
-                                        with c_htf:
-                                            st.markdown("#### 🏛️ HTF Links")
-                                            for l in t.get('htf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        with c_ltf:
-                                            st.markdown("#### ⚡ LTF Links")
-                                            for l in t.get('ltf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        st.divider()
+                                for t in sunday_trades: render_trade_details(t)
                             else:
                                 st.write("Brak tradów.")
                                 st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
@@ -464,27 +478,7 @@ if menu == "📊 Dashboard":
                                 st.markdown(
                                     f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                 st.divider()
-                                for t in day_trades:
-                                    with st.container():
-                                        h1, h2 = st.columns([3, 1])
-                                        h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                        pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                        h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                    unsafe_allow_html=True)
-                                        st.caption(
-                                            f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}")
-                                        if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                        st.markdown("---")
-                                        c_htf, c_ltf = st.columns(2)
-                                        with c_htf:
-                                            st.markdown("#### 🏛️ HTF Links")
-                                            for l in t.get('htf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        with c_ltf:
-                                            st.markdown("#### ⚡ LTF Links")
-                                            for l in t.get('ltf_links', []):
-                                                if "http" in l: st.image(l.strip(), use_container_width=True)
-                                        st.divider()
+                                for t in day_trades: render_trade_details(t)
                             else:
                                 st.write("Brak wpisów.")
     else:
@@ -492,14 +486,12 @@ if menu == "📊 Dashboard":
 
 # --- DAILY JOURNAL ---
 elif menu == "📝 Daily Journal":
-    with top_col1:
-        st.markdown("<h3 style='margin-top: -10px;'>Daily Trade Entry</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin-top: -15px;'>Daily Trade Entry</h3>", unsafe_allow_html=True)
 
     if 'editing_index' not in st.session_state: st.session_state.editing_index = None
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None and not all_trades[
         st.session_state.editing_index].get('is_backtest') else None
 
-    # Ładowanie confluences do tymczasowej listy przy wchodzeniu w tryb edycji
     if 'dj_current_edit_idx' not in st.session_state or st.session_state.dj_current_edit_idx != st.session_state.editing_index:
         st.session_state.dj_current_edit_idx = st.session_state.editing_index
         st.session_state.dj_temp_conf = curr.get('confluences', []).copy() if curr else []
@@ -575,11 +567,10 @@ elif menu == "📝 Daily Journal":
             "is_backtest": False,
             "notes": notes, "model_mistakes": model_mistakes, "mental_mistakes": mental_mistakes,
             "confluences": st.session_state.dj_temp_conf.copy(),
-            "checklist": [False] * 6,  # Przekazanie pustej listy, by nie zepsuć struktury bazy
+            "checklist": [False] * 6,
             "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
             "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
             "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
-            # Zachowujemy puste stare pola by nie zepsuć bazy
             "general_notes": "", "mood": "", "interfered": "No", "interfered_how": "",
             "htf_desc": "", "htf_keypoints": "", "ltf_desc": "", "ltf_keypoints": ""
         }
@@ -597,40 +588,36 @@ elif menu == "📝 Daily Journal":
 
 # --- BACKTESTING ---
 elif menu == "⏪ Backtesting":
-    with top_col1:
-        bt_section_idx = 1 if st.session_state.get('bt_nav_section') == "Trade Entry" else 0
+    bt_section_idx = 1 if st.session_state.get('bt_nav_section') == "Trade Entry" else 0
 
-        # Obliczenie dat potrzebnych do górnego paska Backtest Dashboardu
-        bt_trades = [t for t in all_trades if t.get('is_backtest', True)]
-        df_bt = pd.DataFrame(bt_trades)
-        if not df_bt.empty:
-            df_bt['date'] = pd.to_datetime(df_bt['date'])
-            min_y = df_bt['date'].dt.year.min()
-            max_y = df_bt['date'].dt.year.max()
-        else:
-            min_y, max_y = 2024, 2025
+    bt_trades = [t for t in all_trades if t.get('is_backtest', True)]
+    df_bt = pd.DataFrame(bt_trades)
+    if not df_bt.empty:
+        df_bt['date'] = pd.to_datetime(df_bt['date'])
+        min_y = df_bt['date'].dt.year.min()
+        max_y = df_bt['date'].dt.year.max()
+    else:
+        min_y, max_y = 2024, 2025
 
-        c_t, c_r, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-        c_t.markdown("<h3 style='margin-top: -15px;'>⏪ Backtesting</h3>", unsafe_allow_html=True)
-        bt_menu = c_r.radio("Sekcja:", ["Dashboard", "Trade Entry"], horizontal=True, index=bt_section_idx,
-                            label_visibility="collapsed", key="bt_main_nav")
-        st.session_state.bt_nav_section = bt_menu
+    c_t, c_r, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
+    c_t.markdown("<h3 style='margin-top: -15px;'>⏪ Backtesting</h3>", unsafe_allow_html=True)
+    bt_menu = c_r.radio("Sekcja:", ["Dashboard", "Trade Entry"], horizontal=True, index=bt_section_idx,
+                        label_visibility="collapsed", key="bt_main_nav")
+    st.session_state.bt_nav_section = bt_menu
 
-        if bt_menu == "Dashboard":
-            view_year = c_y.selectbox("Year", range(min_y, max_y + 2), index=range(min_y, max_y + 2).index(
-                datetime.now().year) if datetime.now().year in range(min_y, max_y + 2) else 0,
-                                      label_visibility="collapsed", key="bt_cal_y")
-            view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1,
-                                       label_visibility="collapsed", key="bt_cal_m")
+    if bt_menu == "Dashboard":
+        view_year = c_y.selectbox("Year", range(min_y, max_y + 2), index=range(min_y, max_y + 2).index(
+            datetime.now().year) if datetime.now().year in range(min_y, max_y + 2) else 0, label_visibility="collapsed",
+                                  key="bt_cal_y")
+        view_month = c_m.selectbox("Month", range(1, 13), index=datetime.now().month - 1, label_visibility="collapsed",
+                                   key="bt_cal_m")
 
     if bt_menu == "Dashboard":
         if not df_bt.empty:
             total_pnl = df_bt['pnl'].sum()
             total_valid = len(df_bt[df_bt['direction'] != 'No Trade'])
-
             wins_df = df_bt[df_bt['pnl'] > 0]
             losses_df = df_bt[df_bt['pnl'] < 0]
-
             wins_count = len(wins_df)
             losses_count = len(losses_df)
 
@@ -655,9 +642,7 @@ elif menu == "⏪ Backtesting":
             c6.metric("Trades", total_valid)
             c7.metric("Days", unique_days)
 
-            # --- BT CALENDAR ---
             st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-
             cal = calendar.monthcalendar(view_year, view_month)
 
             cols = st.columns(7)
@@ -712,19 +697,7 @@ elif menu == "⏪ Backtesting":
                                 st.divider()
                                 sunday_trades = [t for t in bt_trades if t['date'] == str(curr_date_sunday)]
                                 if sunday_trades:
-                                    for t in sunday_trades:
-                                        with st.container():
-                                            h1, h2 = st.columns([3, 1])
-                                            h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                            pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                            h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                        unsafe_allow_html=True)
-                                            st.caption(
-                                                f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
-                                            if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                            st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
-                                            st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
-                                            st.divider()
+                                    for t in sunday_trades: render_trade_details(t)
                                 else:
                                     st.write("Brak tradów.")
                                     st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
@@ -777,19 +750,7 @@ elif menu == "⏪ Backtesting":
                                     st.markdown(
                                         f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                     st.divider()
-                                    for t in day_trades:
-                                        with st.container():
-                                            h1, h2 = st.columns([3, 1])
-                                            h1.markdown(f"### {t['asset']} ({t['direction']})")
-                                            pnl_c = "green" if t['pnl'] > 0 else ("red" if t['pnl'] < 0 else "gray")
-                                            h2.markdown(f"<h3 style='color:{pnl_c}'>{t['pnl']:+.1f} $</h3>",
-                                                        unsafe_allow_html=True)
-                                            st.caption(
-                                                f"🕒 {t['time']} | 🔄 {t['trade_type']} | 🎯 {t['outcome']} | 💼 Backtesting | RR: {t.get('rr', 0.0)}")
-                                            if t.get('notes'): st.info(f"📝 {t['notes']}")
-                                            st.write(f"**Model Mistakes:** {t.get('model_mistakes', '-')}")
-                                            st.write(f"**Mental Mistakes:** {t.get('mental_mistakes', '-')}")
-                                            st.divider()
+                                    for t in day_trades: render_trade_details(t)
                                 else:
                                     st.write("Brak wpisów.")
         else:
@@ -877,14 +838,13 @@ elif menu == "⏪ Backtesting":
                 "is_backtest": True,
                 "notes": notes, "model_mistakes": model_mistakes, "mental_mistakes": mental_mistakes,
                 "confluences": st.session_state.bt_temp_conf.copy(),
-                "checklist": [False] * 6,  # Przekazanie pustej listy, by nie zepsuć struktury bazy
+                "checklist": [False] * 6,
                 "outcome": outcome, "pnl": pnl_val, "rr": rr_val,
                 "htf_links": [x.strip() for x in htf_links.split('\n') if x.strip()],
                 "ltf_links": [x.strip() for x in ltf_links.split('\n') if x.strip()],
                 "general_notes": "", "mood": "", "interfered": "No", "interfered_how": "",
                 "htf_desc": "", "htf_keypoints": "", "ltf_desc": "", "ltf_keypoints": ""
             }
-
             if st.session_state.editing_index is not None:
                 st.session_state.all_trades[st.session_state.editing_index] = new_data
                 st.session_state.editing_index = None
@@ -899,8 +859,7 @@ elif menu == "⏪ Backtesting":
 
 # --- TRADES HISTORY ---
 elif menu == "📜 Trades History":
-    with top_col1:
-        st.markdown("<h3 style='margin-top: -10px;'>Trade History</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin-top: -15px;'>Trade History</h3>", unsafe_allow_html=True)
 
     preset_date = st.session_state.get('history_filter_date')
     if preset_date:
@@ -969,22 +928,25 @@ elif menu == "📜 Trades History":
                 if t.get('is_backtest') or t.get('notes') or t.get('confluences'):
                     if t.get('notes'): st.info(f"**Notes:** {t['notes']}")
                     cm1, cm2 = st.columns(2)
-                    cm1.error(f"**Model Mistakes:**\n{t.get('model_mistakes', '-')}")
-                    cm2.warning(f"**Mental Mistakes:**\n{t.get('mental_mistakes', '-')}")
+                    if str(t.get('model_mistakes', '')).strip(): cm1.error(
+                        f"**Model Mistakes:**\n{t.get('model_mistakes', '-')}")
+                    if str(t.get('mental_mistakes', '')).strip(): cm2.warning(
+                        f"**Mental Mistakes:**\n{t.get('mental_mistakes', '-')}")
 
-                    if t.get('confluences'):
-                        st.markdown(f"**Confluences:** {', '.join(t.get('confluences', []))}")
+                    if t.get('confluences'): st.markdown(f"**Confluences:** {', '.join(t.get('confluences', []))}")
                     st.write("---")
 
                     cl1, cl2 = st.columns(2)
                     with cl1:
-                        st.markdown("### 🏛️ HTF Links")
-                        for l in t.get('htf_links', []):
-                            if "http" in l: st.image(l.strip(), use_container_width=True)
+                        if any("http" in str(l) for l in t.get('htf_links', [])):
+                            st.markdown("### 🏛️ HTF Links")
+                            for l in t.get('htf_links', []):
+                                if "http" in l: st.image(l.strip(), use_container_width=True)
                     with cl2:
-                        st.markdown("### ⚡ LTF Links")
-                        for l in t.get('ltf_links', []):
-                            if "http" in l: st.image(l.strip(), use_container_width=True)
+                        if any("http" in str(l) for l in t.get('ltf_links', [])):
+                            st.markdown("### ⚡ LTF Links")
+                            for l in t.get('ltf_links', []):
+                                if "http" in l: st.image(l.strip(), use_container_width=True)
 
                 # Kompatybilność wsteczna - zachowujemy podgląd dla starych wpisów przed zmianami
                 if t.get('general_notes') or t.get('htf_desc') or t.get('ltf_desc') or t.get('mood'):
@@ -1000,33 +962,31 @@ elif menu == "📜 Trades History":
                     ca, cb = st.columns(2)
                     with ca:
                         st.markdown("### 🏛️ HTF Analysis")
-                        if t.get('htf_keypoints'):
-                            st.markdown(
-                                f"<div class='highlight-box'><b>HTF Key Points:</b><br>{t.get('htf_keypoints', 'N/A')}</div>",
-                                unsafe_allow_html=True)
-                        if t.get('htf_desc'):
-                            st.write(f"**HTF Notes:** {t['htf_desc']}")
+                        if t.get('htf_keypoints'): st.markdown(
+                            f"<div class='highlight-box'><b>HTF Key Points:</b><br>{t.get('htf_keypoints', 'N/A')}</div>",
+                            unsafe_allow_html=True)
+                        if t.get('htf_desc'): st.write(f"**HTF Notes:** {t['htf_desc']}")
                     with cb:
                         st.markdown("### ⚡ LTF Analysis")
-                        if t.get('ltf_keypoints'):
-                            st.markdown(
-                                f"<div class='highlight-box'><b>LTF Key Points:</b><br>{t.get('ltf_keypoints', 'N/A')}</div>",
-                                unsafe_allow_html=True)
-                        if t.get('ltf_desc'):
-                            st.write(f"**LTF Notes:** {t['ltf_desc']}")
+                        if t.get('ltf_keypoints'): st.markdown(
+                            f"<div class='highlight-box'><b>LTF Key Points:</b><br>{t.get('ltf_keypoints', 'N/A')}</div>",
+                            unsafe_allow_html=True)
+                        if t.get('ltf_desc'): st.write(f"**LTF Notes:** {t['ltf_desc']}")
     else:
         st.info("Brak tradów w historii.")
 
 # --- YEARLY CALENDAR ---
 elif menu == "🗓️ Yearly Calendar":
-    with top_col1:
-        c_t, c_y = st.columns([2, 1])
-        c_t.markdown("<h3 style='margin-top: -10px;'>🗓️ Yearly Calendar</h3>", unsafe_allow_html=True)
-        view_year = c_y.selectbox("Select Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
-                                  label_visibility="collapsed", key="yc_view_year")
+    c_t, c_y, c_type = st.columns([1.5, 1, 2.5])
+    c_t.markdown("<h3 style='margin-top: -15px;'>🗓️ Yearly Calendar</h3>", unsafe_allow_html=True)
+    view_year = c_y.selectbox("Select Year", range(2024, 2030), index=range(2024, 2030).index(datetime.now().year),
+                              label_visibility="collapsed", key="yc_view_year")
+    yc_type = c_type.radio("Type:", ["Live Trading", "Backtesting"], horizontal=True, label_visibility="collapsed",
+                           key="yc_type")
 
     if all_trades:
-        filtered_trades = [t for t in all_trades if not t.get('is_backtest', False)]
+        is_bt = True if yc_type == "Backtesting" else False
+        filtered_trades = [t for t in all_trades if t.get('is_backtest', False) == is_bt]
 
         for view_month in range(1, 13):
             st.markdown(
@@ -1058,7 +1018,7 @@ elif menu == "🗓️ Yearly Calendar":
 
                 cols = st.columns(7)
                 for i, day in enumerate(week):
-                    if i == 6:  # Niedziela
+                    if i == 6:
                         bg_c, bor_c, txt_c, pnl_c = current_theme['bg_card'], current_theme['border'], current_theme[
                             'text_primary'], current_theme['text_secondary']
                         if weekly_pnl > 0:
@@ -1087,12 +1047,7 @@ elif menu == "🗓️ Yearly Calendar":
                                 st.divider()
                                 sunday_trades = [t for t in filtered_trades if t['date'] == str(curr_date_sunday)]
                                 if sunday_trades:
-                                    for t in sunday_trades:
-                                        with st.container():
-                                            st.write(
-                                                f"**{t['asset']} ({t['direction']})** | :{'green' if t['pnl'] > 0 else 'red' if t['pnl'] < 0 else 'gray'}[{t['pnl']:+.1f} $]")
-                                            st.caption(f"RR: {t.get('rr', 0.0)}")
-                                            st.markdown("---")
+                                    for t in sunday_trades: render_trade_details(t)
                                 else:
                                     st.write("Brak tradów.")
                                     st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
@@ -1146,12 +1101,7 @@ elif menu == "🗓️ Yearly Calendar":
                                     st.markdown(
                                         f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
                                     st.divider()
-                                    for t in day_trades:
-                                        with st.container():
-                                            st.write(
-                                                f"**{t['asset']} ({t['direction']})** | :{'green' if t['pnl'] > 0 else 'red' if t['pnl'] < 0 else 'gray'}[{t['pnl']:+.1f} $]")
-                                            st.caption(f"🕒 {t['time']} | RR: {t.get('rr', 0.0)}")
-                                            st.markdown("---")
+                                    for t in day_trades: render_trade_details(t)
                                 else:
                                     st.write("Brak wpisów.")
             st.markdown("<hr style='margin: 30px 0; border-color: " + current_theme['border'] + ";'>",
@@ -1161,8 +1111,7 @@ elif menu == "🗓️ Yearly Calendar":
 
 # --- TRADE NOTES ---
 elif menu == "📓 Trade Notes":
-    with top_col1:
-        st.markdown("<h3 style='margin-top: -10px;'>📓 Trade Notes</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin-top: -15px;'>📓 Trade Notes</h3>", unsafe_allow_html=True)
 
     notes_type = st.radio("Wybierz typ wpisów:", ["Live Trading", "Backtesting"], horizontal=True)
 
@@ -1170,7 +1119,6 @@ elif menu == "📓 Trade Notes":
         is_bt_filter = True if notes_type == "Backtesting" else False
         filtered_trades = [t for t in all_trades if t.get('is_backtest', False) == is_bt_filter]
 
-        # Odrzucamy puste wpisy (sprawdzamy nowe notatki, stare notatki ORAZ linki do zdjęć)
         trades_with_notes = [
             t for t in filtered_trades
             if str(t.get('notes', '')).strip()
@@ -1184,7 +1132,6 @@ elif menu == "📓 Trade Notes":
                or any("http" in str(link) for link in t.get('ltf_links', []))
         ]
 
-        # Sortowanie od najnowszych
         trades_with_notes = sorted(trades_with_notes, key=lambda x: x.get('date', ''), reverse=True)
 
         st.divider()
@@ -1200,32 +1147,22 @@ elif menu == "📓 Trade Notes":
                         f"**PnL:** <span style='color:{pnl_c}; font-weight:bold;'>{float(t.get('pnl', 0)):+.1f} $</span> &nbsp;|&nbsp; **RR:** {t.get('rr', 0.0)}",
                         unsafe_allow_html=True)
 
-                    # Nowe notatki
-                    if str(t.get('notes', '')).strip():
-                        st.info(f"**📝 Notes:**\n{t['notes']}")
-
-                    # Stare notatki (General Notes)
-                    if str(t.get('general_notes', '')).strip():
-                        st.info(f"**📝 General Notes:**\n{t['general_notes']}")
+                    if str(t.get('notes', '')).strip(): st.info(f"**📝 Notes:**\n{t['notes']}")
+                    if str(t.get('general_notes', '')).strip(): st.info(f"**📝 General Notes:**\n{t['general_notes']}")
 
                     cm1, cm2 = st.columns(2)
-                    if str(t.get('model_mistakes', '')).strip():
-                        cm1.error(f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
-                    if str(t.get('mental_mistakes', '')).strip():
-                        cm2.warning(f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
+                    if str(t.get('model_mistakes', '')).strip(): cm1.error(
+                        f"**🚫 Model Mistakes:**\n{t['model_mistakes']}")
+                    if str(t.get('mental_mistakes', '')).strip(): cm2.warning(
+                        f"**🧠 Mental Mistakes:**\n{t['mental_mistakes']}")
 
-                    if t.get('confluences'):
-                        st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
+                    if t.get('confluences'): st.markdown(f"**🧩 Confluences:** {', '.join(t.get('confluences', []))}")
 
-                    # Stare notatki (HTF/LTF)
                     if str(t.get('htf_desc', '')).strip() or str(t.get('ltf_desc', '')).strip():
                         ch1, ch2 = st.columns(2)
-                        if str(t.get('htf_desc', '')).strip():
-                            ch1.write(f"**🏛️ HTF Notes:** {t['htf_desc']}")
-                        if str(t.get('ltf_desc', '')).strip():
-                            ch2.write(f"**⚡ LTF Notes:** {t['ltf_desc']}")
+                        if str(t.get('htf_desc', '')).strip(): ch1.write(f"**🏛️ HTF Notes:** {t['htf_desc']}")
+                        if str(t.get('ltf_desc', '')).strip(): ch2.write(f"**⚡ LTF Notes:** {t['ltf_desc']}")
 
-                    # Wyświetlanie linków/zdjęć (HTF i LTF)
                     has_htf = bool([l for l in t.get('htf_links', []) if "http" in l])
                     has_ltf = bool([l for l in t.get('ltf_links', []) if "http" in l])
 
