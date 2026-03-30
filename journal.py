@@ -214,15 +214,37 @@ st.markdown(f"""
         line-height: 1.2; text-align: center; letter-spacing: -0.2px;
     }}
 
-    /* Popover trigger button - nakładka na kafelek */
+    /* Popover wrapper - cofamy cały element-container do góry */
+    div.element-container:has(div[data-testid="stPopover"]) {{
+        margin-top: -84px !important;
+        position: relative;
+        z-index: 10;
+        height: 80px;
+    }}
+
+    /* Popover trigger button - transparentna nakładka na kafelek */
     div[data-testid="stPopover"] > button {{
         height: 80px !important; width: 100% !important;
-        background-color: transparent !important; border: none !important;
-        border-radius: 10px !important; color: transparent !important;
-        margin-top: -80px !important; position: relative; z-index: 5;
+        background-color: transparent !important;
+        border: none !important; outline: none !important;
+        border-radius: 10px !important;
+        margin: 0 !important; padding: 0 !important;
+        box-shadow: none !important;
+        position: relative; z-index: 10;
+        transition: background-color 0.15s, border 0.15s !important;
+    }}
+    /* Ukrycie tekstu "expand_more" i wszystkich ikon wewnątrz buttona */
+    div[data-testid="stPopover"] > button p,
+    div[data-testid="stPopover"] > button span,
+    div[data-testid="stPopover"] > button div,
+    div[data-testid="stPopover"] > button svg {{
+        display: none !important;
+        visibility: hidden !important;
+        font-size: 0 !important;
+        width: 0 !important; height: 0 !important;
     }}
     div[data-testid="stPopover"] > button:hover {{
-        background-color: rgba(124,91,246,0.05) !important;
+        background-color: rgba(124,91,246,0.08) !important;
         border: 1px solid {current_theme['accent']} !important;
     }}
 
