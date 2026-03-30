@@ -59,9 +59,11 @@ current_theme = themes[st.session_state.theme]
 # --- INJECT CSS ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@300;400;500&display=swap');
 
-    * {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important; }}
+    * {{ font-family: 'DM Sans', -apple-system, sans-serif !important; }}
+    h1, h2, h3, h4, h5, h6 {{ font-family: 'Syne', sans-serif !important; font-weight: 700 !important; }}
+    [data-testid="stMetricValue"], .weekly-summary-value {{ font-family: 'DM Mono', monospace !important; }}
 
     /* Chrome Streamlit - ukrycie */
     [data-testid="stHeader"] {{ display: none !important; }}
@@ -83,8 +85,9 @@ st.markdown(f"""
         background: linear-gradient(135deg, {current_theme['accent']} 0%, {current_theme['accent']}bb 100%) !important;
         border: none !important;
         color: #ffffff !important;
-        font-weight: 600 !important;
-        letter-spacing: 0.2px !important;
+        font-family: 'Syne', sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.3px !important;
         box-shadow: 0 4px 20px {current_theme['accent']}45 !important;
         transition: all 0.2s !important;
     }}
@@ -129,11 +132,12 @@ st.markdown(f"""
         box-shadow: 0 8px 32px rgba(0,0,0,0.25);
     }}
     [data-testid="stMetricValue"] {{
+        font-family: 'DM Mono', monospace !important;
         font-size: 1.35rem !important;
-        font-weight: 700 !important;
+        font-weight: 500 !important;
         padding-bottom: 0px !important;
         color: {current_theme['text_primary']} !important;
-        letter-spacing: -0.5px;
+        letter-spacing: -1px;
     }}
     [data-testid="stMetricLabel"] {{
         font-size: 0.68rem !important;
@@ -210,8 +214,9 @@ st.markdown(f"""
         letter-spacing: 1.2px; opacity: 0.55; font-weight: 600;
     }}
     .weekly-summary-value {{
-        font-size: 0.92em; font-weight: 700;
-        line-height: 1.2; text-align: center; letter-spacing: -0.2px;
+        font-family: 'DM Mono', monospace !important;
+        font-size: 0.88em; font-weight: 500;
+        line-height: 1.2; text-align: center; letter-spacing: -0.5px;
     }}
 
     /* === CALENDAR CELLS === */
@@ -314,6 +319,39 @@ st.markdown(f"""
     div[data-testid="stAlert"] {{ border-radius: 10px !important; }}
     </style>
 """, unsafe_allow_html=True)
+
+# --- CALENDAR FIX via JS (img onerror = guaranteed DOM access) ---
+st.markdown("""
+<img src="x" onerror="
+(function(){
+  var accent='{ACC}';
+  function fix(){
+    document.querySelectorAll('[data-testid=stPopover]').forEach(function(p){
+      var col=p.closest('[data-testid=column]');
+      if(!col||!col.querySelector('.day-card'))return;
+      col.style.setProperty('position','relative','important');
+      // find wrapper element (parent of stPopover)
+      var ec=p.parentElement;
+      while(ec&&ec!==col){
+        if(ec.children.length===1&&ec.firstElementChild===p){
+          Object.assign(ec.style,{position:'absolute',top:'3px',left:'3px',right:'3px',height:'80px',zIndex:'20',margin:'0',padding:'0'});
+        }
+        ec=ec.parentElement;
+      }
+      var btn=p.querySelector('button');
+      if(btn){
+        Object.assign(btn.style,{height:'80px',width:'100%',background:'transparent',border:'none',outline:'none',padding:'0',margin:'0',boxShadow:'none',borderRadius:'10px',cursor:'pointer',display:'block'});
+        Array.from(btn.children).forEach(function(c){c.style.display='none';});
+        btn.onmouseenter=function(){this.style.background='rgba(124,91,246,0.1)';this.style.border='1px solid #7c5bf6';};
+        btn.onmouseleave=function(){this.style.background='transparent';this.style.border='none';};
+      }
+    });
+  }
+  new MutationObserver(function(){fix();}).observe(document.body,{childList:true,subtree:true});
+  [0,200,600,1500,3000].forEach(function(t){setTimeout(fix,t);});
+})();
+" style="display:none">
+""".replace('{ACC}', '#7c5bf6'), unsafe_allow_html=True)
 
 # --- GOOGLE SHEETS CONNECTION ---
 conn = st.connection("gsheets", type=GSheetsConnection)
