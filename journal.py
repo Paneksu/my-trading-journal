@@ -25,116 +25,266 @@ if 'bt_nav_section' not in st.session_state:
 # --- DEFINICJA KOLORÓW DLA MOTYWÓW ---
 themes = {
     "Dark": {
-        "bg_app": "#16161e",
-        "bg_sidebar": "#121218",
-        "bg_card": "#1d1d27",
-        "bg_metric": "linear-gradient(135deg, #1d1d27 0%, #251d30 100%)",
-        "menu_bg": "linear-gradient(135deg, #1d1d27 0%, #2a2a35 100%)",
-        "border": "#3a3a4a",
-        "text_primary": "#eaeaea",
-        "text_secondary": "#b4b4b4",
-        "accent": "#ff007f",
-        "popover_bg": "#1d1d27",
-        "card_shadow": "0 2px 4px rgba(0,0,0,0.3)",
-        "input_bg": "#1d1d27"
+        "bg_app": "#0a0b10",
+        "bg_sidebar": "#07080d",
+        "bg_card": "#111219",
+        "bg_metric": "linear-gradient(135deg, #111219 0%, #17122a 100%)",
+        "menu_bg": "linear-gradient(135deg, #111219 0%, #141521 100%)",
+        "border": "#1d1f30",
+        "text_primary": "#e4e5f0",
+        "text_secondary": "#52547a",
+        "accent": "#7c5bf6",
+        "popover_bg": "#111219",
+        "card_shadow": "0 4px 24px rgba(0,0,0,0.45)",
+        "input_bg": "#0e0f18"
     },
     "Light": {
-        "bg_app": "#f4f7fa",
+        "bg_app": "#f4f6fb",
         "bg_sidebar": "#ffffff",
         "bg_card": "#ffffff",
-        "bg_metric": "linear-gradient(135deg, #ffffff 0%, #eadaff 100%)",
-        "menu_bg": "linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%)",
-        "border": "#d2dbe3",
-        "text_primary": "#202538",
-        "text_secondary": "#5a627a",
-        "accent": "#6c5ce7",
+        "bg_metric": "linear-gradient(135deg, #ffffff 0%, #f0ecff 100%)",
+        "menu_bg": "linear-gradient(135deg, #ffffff 0%, #f8f5ff 100%)",
+        "border": "#dfe2f0",
+        "text_primary": "#1a1c2e",
+        "text_secondary": "#6b6e8e",
+        "accent": "#6c47ff",
         "popover_bg": "#ffffff",
-        "card_shadow": "0 4px 6px rgba(0,0,0,0.08)",
+        "card_shadow": "0 4px 16px rgba(0,0,0,0.07)",
         "input_bg": "#ffffff"
     }
 }
 
 current_theme = themes[st.session_state.theme]
 
-# --- INJECT CSS (Z KOMPRESJĄ I WŁASNYM MENU) ---
+# --- INJECT CSS ---
 st.markdown(f"""
     <style>
-    /* Ukrycie domyślnego nagłówka i całkowite usunięcie sidebaru Streamlit */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    * {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important; }}
+
+    /* Chrome Streamlit - ukrycie */
     [data-testid="stHeader"] {{ display: none !important; }}
     [data-testid="stSidebar"] {{ display: none !important; }}
     [data-testid="collapsedControl"] {{ display: none !important; }}
 
-    /* Kompresja widoku */
-    .block-container {{ padding-top: 1rem; padding-bottom: 0rem; max-width: 98%; }}
-
+    /* Layout */
+    .block-container {{ padding-top: 0.85rem; padding-bottom: 0rem; max-width: 98%; }}
     .stApp {{ background-color: {current_theme['bg_app']}; color: {current_theme['text_primary']}; }}
 
-    /* Stylowanie aktywnych przycisków w menu nawigacyjnym */
+    /* Scrollbar */
+    ::-webkit-scrollbar {{ width: 5px; height: 5px; }}
+    ::-webkit-scrollbar-track {{ background: transparent; }}
+    ::-webkit-scrollbar-thumb {{ background: {current_theme['border']}; border-radius: 10px; }}
+    ::-webkit-scrollbar-thumb:hover {{ background: {current_theme['accent']}; }}
+
+    /* Aktywny przycisk nawigacyjny */
     button[kind="primary"] {{
-        background-color: {current_theme['accent']} !important;
-        border-color: {current_theme['accent']} !important;
+        background: linear-gradient(135deg, {current_theme['accent']} 0%, {current_theme['accent']}bb 100%) !important;
+        border: none !important;
         color: #ffffff !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.2px !important;
+        box-shadow: 0 4px 20px {current_theme['accent']}45 !important;
+        transition: all 0.2s !important;
+    }}
+    button[kind="primary"]:hover {{
+        box-shadow: 0 6px 28px {current_theme['accent']}65 !important;
+        transform: translateY(-1px) !important;
     }}
 
-    /* Tło menu w gradiencie i solidna linia oddzielająca od reszty strony */
+    /* Kontener menu nawigacyjnego */
     div.element-container:has(.nav-marker) + div.element-container > div[data-testid="stHorizontalBlock"] {{
         background: {current_theme['menu_bg']};
-        padding: 15px 20px;
-        border-radius: 12px;
-        border-bottom: 4px solid {current_theme['accent']};
+        padding: 10px 16px;
+        border-radius: 16px;
+        border: 1px solid {current_theme['border']};
+        border-bottom: 2px solid {current_theme['accent']};
         box-shadow: {current_theme['card_shadow']};
-        margin-bottom: 30px;
+        margin-bottom: 22px;
     }}
 
-    /* Kompresja kafelków Metrics */
-    div[data-testid="stMetric"] {{ background: {current_theme['bg_metric']}; padding: 5px 10px !important; border-radius: 8px !important; border: 1px solid {current_theme['border']}; color: {current_theme['text_primary']}; box-shadow: {current_theme['card_shadow']}; }}
-    [data-testid="stMetricValue"] {{ font-size: 1.25rem !important; padding-bottom: 0px !important; color: {current_theme['text_primary']} !important; }}
-    [data-testid="stMetricLabel"] {{ font-size: 0.8rem !important; color: {current_theme['text_primary']} !important; }}
+    /* Metryki */
+    div[data-testid="stMetric"] {{
+        background: {current_theme['bg_metric']};
+        padding: 12px 14px !important;
+        border-radius: 12px !important;
+        border: 1px solid {current_theme['border']};
+        color: {current_theme['text_primary']};
+        box-shadow: {current_theme['card_shadow']};
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }}
+    div[data-testid="stMetric"]::before {{
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, {current_theme['accent']}, transparent);
+        border-radius: 12px 12px 0 0;
+    }}
+    div[data-testid="stMetric"]:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }}
+    [data-testid="stMetricValue"] {{
+        font-size: 1.35rem !important;
+        font-weight: 700 !important;
+        padding-bottom: 0px !important;
+        color: {current_theme['text_primary']} !important;
+        letter-spacing: -0.5px;
+    }}
+    [data-testid="stMetricLabel"] {{
+        font-size: 0.68rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.9px;
+        color: {current_theme['text_secondary']} !important;
+    }}
 
+    /* Tekst */
     h1, h2, h3, h4, p, span, div, label {{ color: {current_theme['text_primary']}; }}
     .stMarkdown p {{ color: {current_theme['text_primary']} !important; }}
-    div[data-testid="stButton"] button {{ border: 1px solid {current_theme['border']}; background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; font-weight: bold; box-shadow: {current_theme['card_shadow']}; }}
 
-    /* Poprawka dla okrągłych przycisków ikonek jeśli są same w kolumnie */
-    div[data-testid="column"]:last-child div[data-testid="stButton"] button {{ border-radius: 50%; width: 45px; height: 45px; margin-left: auto; }}
+    /* Przyciski */
+    div[data-testid="stButton"] button {{
+        border: 1px solid {current_theme['border']};
+        background-color: {current_theme['bg_card']};
+        color: {current_theme['text_primary']};
+        font-weight: 500;
+        font-size: 0.84rem;
+        letter-spacing: 0.1px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 9px !important;
+        transition: all 0.18s;
+    }}
+    div[data-testid="stButton"] button:hover {{
+        border-color: {current_theme['accent']};
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        transform: translateY(-1px);
+    }}
 
+    /* Okrągłe przyciski ikonek w ostatniej kolumnie */
+    div[data-testid="column"]:last-child div[data-testid="stButton"] button {{
+        border-radius: 50% !important;
+        width: 42px !important;
+        height: 42px !important;
+        margin-left: auto !important;
+        padding: 0 !important;
+    }}
+
+    /* Fullscreen na obrazkach */
     [data-testid="stImage"] {{ overflow: visible !important; position: relative !important; }}
-    button[title="View fullscreen"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: rgba(0, 0, 0, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; width: 2.5rem !important; height: 2.5rem !important; right: 0.5rem !important; top: 0.5rem !important; z-index: 999999 !important; cursor: pointer !important; border-radius: 8px !important; align-items: center !important; justify-content: center !important; transition: background-color 0.2s !important; }}
-    button[title="View fullscreen"]:hover {{ background-color: rgba(0, 0, 0, 0.9) !important; border-color: {current_theme['accent']} !important; transform: scale(1.05); }}
+    button[title="View fullscreen"] {{
+        display: flex !important; visibility: visible !important; opacity: 1 !important;
+        background-color: rgba(0,0,0,0.65) !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        width: 2.5rem !important; height: 2.5rem !important;
+        right: 0.5rem !important; top: 0.5rem !important;
+        z-index: 999999 !important; cursor: pointer !important;
+        border-radius: 10px !important;
+        align-items: center !important; justify-content: center !important;
+        transition: all 0.2s !important;
+    }}
+    button[title="View fullscreen"]:hover {{
+        background-color: rgba(0,0,0,0.9) !important;
+        border-color: {current_theme['accent']} !important;
+        transform: scale(1.05);
+    }}
     button[title="View fullscreen"] svg {{ fill: white !important; width: 1.2rem !important; height: 1.2rem !important; }}
 
-    /* Kompaktowe kafelki dni w Kalendarzu - zmniejszona wysokość do 75px */
-    .day-card {{ height: 75px; width: 100%; border-radius: 8px; padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid {current_theme['border']}; transition: transform 0.2s, box-shadow 0.2s; box-sizing: border-box; background-color: {current_theme['bg_card']}; box-shadow: {current_theme['card_shadow']}; }}
-    .weekly-summary-title {{ font-size: 0.65em; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }}
-    .weekly-summary-value {{ font-size: 0.95em; font-weight: bold; line-height: 1.1; text-align: center; }}
-
-    div[data-testid="stPopover"] > button {{ height: 75px !important; width: 100% !important; background-color: transparent !important; border: none !important; border-radius: 8px !important; color: transparent !important; margin-top: -75px !important; position: relative; z-index: 5; }}
-    div[data-testid="stPopover"] > button:hover {{ background-color: rgba(128, 128, 128, 0.05) !important; border: 1px solid {current_theme['accent']} !important; }}
-
-    div[data-testid="column"] {{ padding: 2px !important; }}
-
-    div[data-testid="stPopoverBody"] {{ 
-        border: 1px solid {current_theme['border']} !important; 
-        background-color: {current_theme['popover_bg']} !important; 
-        color: {current_theme['text_primary']} !important; 
-        min-width: 1200px !important; 
-        max-width: 95vw !important;
-    }}
-
-    .highlight-box {{ 
-        background-color: {'#1e1e26' if st.session_state.theme == 'Dark' else '#f8faff'}; 
-        padding: 10px; 
-        border-radius: 5px; 
-        border-left: 5px solid #00ff7f; 
-        margin-bottom: 10px; 
-        color: {current_theme['text_primary']};
+    /* Kafelki dni w kalendarzu */
+    .day-card {{
+        height: 80px; width: 100%;
+        border-radius: 10px; padding: 6px 8px;
+        display: flex; flex-direction: column; justify-content: space-between;
         border: 1px solid {current_theme['border']};
-        white-space: pre-wrap;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        box-sizing: border-box;
+        background-color: {current_theme['bg_card']};
+        box-shadow: {current_theme['card_shadow']};
+    }}
+    .weekly-summary-title {{
+        font-size: 0.6em; text-transform: uppercase;
+        letter-spacing: 1.2px; opacity: 0.55; font-weight: 600;
+    }}
+    .weekly-summary-value {{
+        font-size: 0.92em; font-weight: 700;
+        line-height: 1.2; text-align: center; letter-spacing: -0.2px;
     }}
 
-    .streamlit-expanderHeader {{ background-color: {current_theme['bg_card']}; color: {current_theme['text_primary']}; border-radius: 5px; border: 1px solid {current_theme['border']}; }}
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"], input, textarea, select {{ background-color: {current_theme['input_bg']} !important; color: {current_theme['text_primary']} !important; border-color: {current_theme['border']} !important; }}
-    div[data-baseweb="select"] svg, div[data-baseweb="input"] svg {{ fill: {current_theme['text_secondary']} !important; }}
+    /* Popover trigger button - nakładka na kafelek */
+    div[data-testid="stPopover"] > button {{
+        height: 80px !important; width: 100% !important;
+        background-color: transparent !important; border: none !important;
+        border-radius: 10px !important; color: transparent !important;
+        margin-top: -80px !important; position: relative; z-index: 5;
+    }}
+    div[data-testid="stPopover"] > button:hover {{
+        background-color: rgba(124,91,246,0.05) !important;
+        border: 1px solid {current_theme['accent']} !important;
+    }}
+
+    div[data-testid="column"] {{ padding: 3px !important; }}
+
+    /* Popover body */
+    div[data-testid="stPopoverBody"] {{
+        border: 1px solid {current_theme['border']} !important;
+        background-color: {current_theme['popover_bg']} !important;
+        color: {current_theme['text_primary']} !important;
+        min-width: 1200px !important; max-width: 95vw !important;
+        border-radius: 16px !important;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.5) !important;
+    }}
+
+    /* Highlight box */
+    .highlight-box {{
+        background-color: {'rgba(124,91,246,0.07)' if st.session_state.theme == 'Dark' else '#f8f5ff'};
+        padding: 12px 14px;
+        border-radius: 9px;
+        border-left: 3px solid {current_theme['accent']};
+        border-top: 1px solid {current_theme['border']};
+        border-right: 1px solid {current_theme['border']};
+        border-bottom: 1px solid {current_theme['border']};
+        margin-bottom: 10px;
+        color: {current_theme['text_primary']};
+        white-space: pre-wrap;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }}
+
+    /* Expander */
+    .streamlit-expanderHeader {{
+        background-color: {current_theme['bg_card']};
+        color: {current_theme['text_primary']};
+        border-radius: 10px;
+        border: 1px solid {current_theme['border']};
+        font-weight: 500;
+    }}
+    [data-testid="stExpander"] {{
+        border: 1px solid {current_theme['border']} !important;
+        border-radius: 12px !important;
+        overflow: hidden;
+    }}
+
+    /* Inputy, selecty */
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div,
+    div[data-baseweb="base-input"], input, textarea, select {{
+        background-color: {current_theme['input_bg']} !important;
+        color: {current_theme['text_primary']} !important;
+        border-color: {current_theme['border']} !important;
+        border-radius: 8px !important;
+    }}
+    div[data-baseweb="select"] svg, div[data-baseweb="input"] svg {{
+        fill: {current_theme['text_secondary']} !important;
+    }}
+
+    /* Linia podziału */
+    hr {{ border-color: {current_theme['border']} !important; opacity: 0.7; }}
+
+    /* Alerty / info boxy */
+    div[data-testid="stAlert"] {{ border-radius: 10px !important; }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -362,7 +512,10 @@ def render_trade_details(t):
 head_col1, head_col2 = st.columns([20, 1])
 with head_col1:
     st.markdown(
-        f"<h2 style='margin-top: -15px; color: {current_theme['text_primary']};'>📘 NQPaneksu <span style='color: {current_theme['accent']};'>Journal</span></h2>",
+        f"""<div style='display:flex;align-items:center;gap:10px;margin-top:-8px;margin-bottom:2px;'>
+            <div style='width:34px;height:34px;background:linear-gradient(135deg,{current_theme['accent']},{current_theme['accent']}88);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;'>📘</div>
+            <h2 style='margin:0;font-size:1.35rem;font-weight:800;letter-spacing:-0.5px;color:{current_theme['text_primary']};line-height:1;'>NQPaneksu <span style='color:{current_theme['accent']};'>Journal</span></h2>
+        </div>""",
         unsafe_allow_html=True)
 with head_col2:
     btn_icon = "☀️" if st.session_state.theme == "Dark" else "🌙"
@@ -386,7 +539,7 @@ menu = st.session_state.menu_nav
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-    c_t.markdown("<h3 style='margin-top: -15px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
+    c_t.markdown(f"<h3 style='margin-top:-12px;font-size:1.05rem;font-weight:700;letter-spacing:-0.2px;'>📊 Dashboard</h3>", unsafe_allow_html=True)
     account_filter = c_f.radio("Filter", ["All", "Funded", "Evaluation"], horizontal=True, label_visibility="collapsed")
     view_year = c_y.selectbox("Year", range(2000, 2031), index=range(2000, 2031).index(datetime.now().year),
                               label_visibility="collapsed")
@@ -461,14 +614,14 @@ if menu == "📊 Dashboard":
                         'text_primary'], current_theme['text_secondary']
                     if weekly_pnl > 0:
                         bg_c, bor_c, pnl_c = (
-                            "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                            "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                            "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
+                            "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                            "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                            "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46")
                     elif weekly_pnl < 0:
                         bg_c, bor_c, pnl_c = (
-                            "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                            "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                            "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
+                            "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                            "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                            "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239")
 
                     card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
                     cols[i].markdown(card_html, unsafe_allow_html=True)
@@ -505,8 +658,8 @@ if menu == "📊 Dashboard":
 
                         if day_trades:
                             if valid_trades_count > 0:
-                                b_bg = "#2d2d3a" if st.session_state.theme == "Dark" else "#e0e7ff"
-                                b_txt = "#ccc" if st.session_state.theme == "Dark" else "#4338ca"
+                                b_bg = "#1d1e30" if st.session_state.theme == "Dark" else "#ede9fe"
+                                b_txt = "#a78bfa" if st.session_state.theme == "Dark" else "#5b21b6"
                                 badge = f"<span style='font-size:0.75em;color:{b_txt};background:{b_bg};padding:1px 4px;border-radius:4px;'>{valid_trades_count}x</span>"
 
                             if has_no_trade and day_pnl == 0:
@@ -514,14 +667,14 @@ if menu == "📊 Dashboard":
                                     "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
                             elif day_pnl > 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
-                                    "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                    "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                    "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                                    "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             elif day_pnl < 0:
                                 bg_c, bor_c, pnl_c, pnl_disp = (
-                                    "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                    "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                    "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                    "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                                    "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             else:
                                 bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
@@ -544,7 +697,7 @@ if menu == "📊 Dashboard":
 
 # --- DAILY JOURNAL ---
 elif menu == "📝 Daily Journal":
-    st.markdown("<h3 style='margin-top: -15px;'>Daily Trade Entry</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin-top:-12px;font-size:1.05rem;font-weight:700;letter-spacing:-0.2px;'>📝 Daily Trade Entry</h3>", unsafe_allow_html=True)
 
     if 'editing_index' not in st.session_state: st.session_state.editing_index = None
     curr = all_trades[st.session_state.editing_index] if st.session_state.editing_index is not None and not all_trades[
@@ -654,7 +807,7 @@ elif menu == "⏪ Backtesting":
         df_bt['date'] = pd.to_datetime(df_bt['date'])
 
     c_t, c_r, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
-    c_t.markdown("<h3 style='margin-top: -15px;'>⏪ Backtesting</h3>", unsafe_allow_html=True)
+    c_t.markdown(f"<h3 style='margin-top:-12px;font-size:1.05rem;font-weight:700;letter-spacing:-0.2px;'>⏪ Backtesting</h3>", unsafe_allow_html=True)
     bt_menu = c_r.radio("Sekcja:", ["Dashboard", "Trade Entry"], horizontal=True, index=bt_section_idx,
                         label_visibility="collapsed", key="bt_main_nav")
     st.session_state.bt_nav_section = bt_menu
@@ -727,14 +880,14 @@ elif menu == "⏪ Backtesting":
                             'text_primary'], current_theme['text_secondary']
                         if weekly_pnl > 0:
                             bg_c, bor_c, pnl_c = (
-                                "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
+                                "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                                "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46")
                         elif weekly_pnl < 0:
                             bg_c, bor_c, pnl_c = (
-                                "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
+                                "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                                "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239")
 
                         card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
@@ -780,14 +933,14 @@ elif menu == "⏪ Backtesting":
                                         "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
                                 elif day_pnl > 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                        "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                                        "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 elif day_pnl < 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                        "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                                        "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 else:
                                     bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
@@ -912,7 +1065,7 @@ elif menu == "⏪ Backtesting":
 
 # --- TRADES HISTORY ---
 elif menu == "📜 Trades History":
-    st.markdown("<h3 style='margin-top: -15px;'>Trade History</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin-top:-12px;font-size:1.05rem;font-weight:700;letter-spacing:-0.2px;'>📜 Trade History</h3>", unsafe_allow_html=True)
 
     preset_date = st.session_state.get('history_filter_date')
     if preset_date:
@@ -969,8 +1122,9 @@ elif menu == "📜 Trades History":
             idx = int(row['original_index'])
             acc_label = f" | 💼 {t.get('account_type', 'Funded')} | RR: {t.get('rr', 0.0)}"
 
+            pnl_sign = "🟢" if float(t['pnl']) > 0 else ("🔴" if float(t['pnl']) < 0 else "⚪")
             with st.expander(
-                    f"#{idx + 1} | {t['date']} | {t['asset']} | {t.get('direction', 'Long')} | {t['pnl']} ${acc_label}"):
+                    f"{pnl_sign}  #{idx + 1} · {t['date']} · {t['asset']} · {t.get('direction', 'Long')} · {t['pnl']:+.1f} ${acc_label}"):
                 b1, b2, _ = st.columns([1, 1, 4])
                 b1.button(f"✏️ Edit #{idx + 1}", key=f"ed_{idx}", on_click=go_to_edit_mode, args=(idx,),
                           use_container_width=True)
@@ -983,7 +1137,7 @@ elif menu == "📜 Trades History":
 # --- YEARLY CALENDAR ---
 elif menu == "🗓️ Yearly Calendar":
     c_t, c_y, c_type = st.columns([1.5, 1, 2.5])
-    c_t.markdown("<h3 style='margin-top: -15px;'>🗓️ Yearly Calendar</h3>", unsafe_allow_html=True)
+    c_t.markdown(f"<h3 style='margin-top:-12px;font-size:1.05rem;font-weight:700;letter-spacing:-0.2px;'>🗓️ Yearly Calendar</h3>", unsafe_allow_html=True)
     view_year = c_y.selectbox("Select Year", range(2000, 2031), index=range(2000, 2031).index(datetime.now().year),
                               label_visibility="collapsed", key="yc_view_year")
     yc_type = c_type.radio("Type:", ["Live Trading", "Backtesting"], horizontal=True, label_visibility="collapsed",
@@ -1028,14 +1182,14 @@ elif menu == "🗓️ Yearly Calendar":
                             'text_primary'], current_theme['text_secondary']
                         if weekly_pnl > 0:
                             bg_c, bor_c, pnl_c = (
-                                "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                "#00ff7f" if st.session_state.theme == "Dark" else "#15803d")
+                                "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                                "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46")
                         elif weekly_pnl < 0:
                             bg_c, bor_c, pnl_c = (
-                                "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c")
+                                "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                                "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239")
 
                         card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
@@ -1082,14 +1236,14 @@ elif menu == "🗓️ Yearly Calendar":
                                         "rgba(142, 142, 147, 0.15)" if st.session_state.theme == "Dark" else "#f3f4f6"), "#8e8e93", "#8e8e93", "⚪ No Trade"
                                 elif day_pnl > 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(0, 255, 127, 0.15)" if st.session_state.theme == "Dark" else "#dcfce7"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#22c55e"), (
-                                        "#00ff7f" if st.session_state.theme == "Dark" else "#15803d"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                        "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                                        "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46"), f"🟢 +{day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 elif day_pnl < 0:
                                     bg_c, bor_c, pnl_c, pnl_disp = (
-                                        "rgba(255, 69, 58, 0.15)" if st.session_state.theme == "Dark" else "#fee2e2"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#ef4444"), (
-                                        "#ff453a" if st.session_state.theme == "Dark" else "#b91c1c"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                                        "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                        "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                                        "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                                 else:
                                     bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
@@ -1116,7 +1270,7 @@ elif menu == "🗓️ Yearly Calendar":
 
 # --- TRADE NOTES ---
 elif menu == "📓 Trade Notes":
-    st.markdown("<h3 style='margin-top: -15px;'>📓 Trade Notes</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin-top:-12px;font-size:1.05rem;font-weight:700;letter-spacing:-0.2px;'>📓 Trade Notes</h3>", unsafe_allow_html=True)
 
     notes_type = st.radio("Wybierz typ wpisów:", ["Live Trading", "Backtesting"], horizontal=True)
 
@@ -1146,15 +1300,20 @@ elif menu == "📓 Trade Notes":
 
             for t in trades_with_notes:
                 with st.container():
-                    pnl_c = "green" if float(t.get('pnl', 0)) > 0 else ("red" if float(t.get('pnl', 0)) < 0 else "gray")
-                    st.markdown(f"#### 📅 {t.get('date')} | {t.get('asset')} ({t.get('direction', '-')})")
+                    pnl_val_n = float(t.get('pnl', 0))
+                    pnl_c = "#22d3a5" if pnl_val_n > 0 else ("#f43f5e" if pnl_val_n < 0 else "#6b6e8e")
+                    pnl_sign_n = "🟢" if pnl_val_n > 0 else ("🔴" if pnl_val_n < 0 else "⚪")
                     st.markdown(
-                        f"**PnL:** <span style='color:{pnl_c}; font-weight:bold;'>{float(t.get('pnl', 0)):+.1f} $</span> &nbsp;|&nbsp; **RR:** {t.get('rr', 0.0)}",
+                        f"<div style='display:flex;align-items:center;gap:12px;padding:10px 14px;background:{current_theme['bg_card']};border:1px solid {current_theme['border']};border-left:3px solid {current_theme['accent']};border-radius:10px;margin-bottom:8px;'>"
+                        f"<span style='font-size:1.1rem;'>{pnl_sign_n}</span>"
+                        f"<div><div style='font-weight:700;font-size:0.95rem;color:{current_theme['text_primary']};'>📅 {t.get('date')} &nbsp;·&nbsp; {t.get('asset')} ({t.get('direction', '-')})</div>"
+                        f"<div style='font-size:0.8rem;color:{current_theme['text_secondary']};margin-top:2px;'>PnL: <span style='color:{pnl_c};font-weight:600;'>{pnl_val_n:+.1f} $</span> &nbsp;·&nbsp; RR: {t.get('rr', 0.0)}</div></div>"
+                        f"</div>",
                         unsafe_allow_html=True)
 
                     render_trade_content(t)
 
-                    st.markdown("<hr style='border-color: " + current_theme['border'] + ";'>", unsafe_allow_html=True)
+                    st.markdown("<hr style='border-color: " + current_theme['border'] + "; opacity:0.5;'>", unsafe_allow_html=True)
         else:
             st.info(f"Brak notatek dla kategorii: {notes_type}.")
     else:
