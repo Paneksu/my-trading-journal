@@ -214,37 +214,42 @@ st.markdown(f"""
         line-height: 1.2; text-align: center; letter-spacing: -0.2px;
     }}
 
-    /* Popover wrapper - cofamy cały element-container do góry */
-    div.element-container:has(div[data-testid="stPopover"]) {{
-        margin-top: -84px !important;
-        position: relative;
-        z-index: 10;
-        height: 80px;
+    /* === CALENDAR CELLS === */
+    /* Kolumna z kafelkiem: position relative, żeby absolutnie pozycjonować popover */
+    div[data-testid="column"]:has(.day-card) {{
+        position: relative !important;
     }}
 
-    /* Popover trigger button - transparentna nakładka na kafelek */
-    div[data-testid="stPopover"] > button {{
+    /* Wrapper element-container popovera - absolutnie przyklejony do karty */
+    div[data-testid="column"]:has(.day-card) div.element-container:has(div[data-testid="stPopover"]) {{
+        position: absolute !important;
+        top: 3px !important; left: 3px !important; right: 3px !important;
+        height: 80px !important;
+        z-index: 20 !important;
+        margin: 0 !important;
+        pointer-events: auto !important;
+    }}
+
+    /* Przycisk popovera - w pełni transparentna nakładka */
+    div[data-testid="column"]:has(.day-card) div[data-testid="stPopover"] > button {{
         height: 80px !important; width: 100% !important;
-        background-color: transparent !important;
+        background: transparent !important;
         border: none !important; outline: none !important;
-        border-radius: 10px !important;
-        margin: 0 !important; padding: 0 !important;
         box-shadow: none !important;
-        position: relative; z-index: 10;
+        padding: 0 !important; margin: 0 !important;
+        border-radius: 10px !important;
         transition: background-color 0.15s, border 0.15s !important;
     }}
-    /* Ukrycie tekstu "expand_more" i wszystkich ikon wewnątrz buttona */
-    div[data-testid="stPopover"] > button p,
-    div[data-testid="stPopover"] > button span,
-    div[data-testid="stPopover"] > button div,
-    div[data-testid="stPopover"] > button svg {{
+
+    /* Ukrycie "expand_more" i całej zawartości buttona */
+    div[data-testid="column"]:has(.day-card) div[data-testid="stPopover"] > button * {{
         display: none !important;
         visibility: hidden !important;
-        font-size: 0 !important;
-        width: 0 !important; height: 0 !important;
     }}
-    div[data-testid="stPopover"] > button:hover {{
-        background-color: rgba(124,91,246,0.08) !important;
+
+    /* Hover */
+    div[data-testid="column"]:has(.day-card) div[data-testid="stPopover"] > button:hover {{
+        background-color: rgba(124, 91, 246, 0.08) !important;
         border: 1px solid {current_theme['accent']} !important;
     }}
 
