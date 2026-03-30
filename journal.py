@@ -220,59 +220,54 @@ st.markdown(f"""
     }}
 
     /* === CALENDAR CELLS === */
-    /* Karta dnia - dolne narożniki spłaszczone żeby złączyć z przyciskiem */
-    .day-card {{
-        border-bottom-left-radius: 0 !important;
-        border-bottom-right-radius: 0 !important;
-        border-bottom: none !important;
-    }}
-
-    /* Przycisk popovera - pasek pod kartą, ten sam kolor */
+    /* Popover button styled as a day card */
     div[data-testid="stPopover"] > button {{
-        height: 22px !important;
+        height: 80px !important;
         width: 100% !important;
-        background-color: {current_theme['bg_card']} !important;
+        border-radius: 10px !important;
         border: 1px solid {current_theme['border']} !important;
-        border-top: none !important;
-        border-radius: 0 0 10px 10px !important;
-        font-size: 0px !important;
-        color: transparent !important;
-        padding: 0 !important;
+        background-color: {current_theme['bg_card']} !important;
+        padding: 6px 8px !important;
         margin: 0 !important;
-        box-shadow: none !important;
-        cursor: pointer !important;
+        box-shadow: {current_theme['card_shadow']} !important;
         display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: background-color 0.15s !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: stretch !important;
+        cursor: pointer !important;
+        transition: border-color 0.15s, box-shadow 0.15s !important;
+        /* Hide original Streamlit content */
+        font-size: 0 !important;
+        color: transparent !important;
+        text-indent: -9999px !important;
+        overflow: hidden !important;
+        position: relative !important;
     }}
-
-    /* Ukrycie całej zawartości (expand_more) */
-    div[data-testid="stPopover"] > button > * {{
+    div[data-testid="stPopover"] > button * {{
         display: none !important;
+        visibility: hidden !important;
     }}
-
-    /* Mała kreska jako subtelny wskaźnik klikalności */
-    div[data-testid="stPopover"] > button::before {{
-        content: '— — —';
-        display: block !important;
-        font-size: 8px !important;
-        letter-spacing: 3px !important;
-        color: {current_theme['text_secondary']} !important;
-        opacity: 0.4;
-        visibility: visible !important;
-    }}
-
-    /* Hover na przycisku */
     div[data-testid="stPopover"] > button:hover {{
-        background-color: {current_theme['accent']}12 !important;
         border-color: {current_theme['accent']} !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
     }}
-    div[data-testid="stPopover"] > button:hover::before {{
-        color: {current_theme['accent']} !important;
-        opacity: 0.8;
+    /* JS will inject .card-inner div with actual card content */
+    div[data-testid="stPopover"] > button .card-inner {{
+        display: flex !important;
+        visibility: visible !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        height: 100% !important;
+        width: 100% !important;
+        font-size: 1rem !important;
+        color: {current_theme['text_primary']} !important;
+        text-indent: 0 !important;
+        position: absolute !important;
+        top: 0 !important; left: 0 !important;
+        padding: 6px 8px !important;
+        box-sizing: border-box !important;
+        pointer-events: none !important;
     }}
-
     div[data-testid="column"] {{ padding: 3px !important; }}
 
     /* Popover body */
@@ -339,34 +334,55 @@ st.markdown(f"""
 st.markdown("""
 <img src="x" onerror="
 (function(){
-  var accent='{ACC}';
-  function fix(){
-    document.querySelectorAll('[data-testid=stPopover]').forEach(function(p){
-      var col=p.closest('[data-testid=column]');
-      if(!col||!col.querySelector('.day-card'))return;
-      col.style.setProperty('position','relative','important');
-      // find wrapper element (parent of stPopover)
-      var ec=p.parentElement;
-      while(ec&&ec!==col){
-        if(ec.children.length===1&&ec.firstElementChild===p){
-          Object.assign(ec.style,{position:'absolute',top:'3px',left:'3px',right:'3px',height:'80px',zIndex:'20',margin:'0',padding:'0'});
+  var LABEL_STYLE='font-family:DM Sans,sans-serif;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.9px;opacity:0.55;';
+  var VAL_STYLE='font-family:DM Mono,monospace;font-size:0.88em;font-weight:500;line-height:1.2;text-align:center;letter-spacing:-0.5px;';
+  function buildCards(){
+    document.querySelectorAll('span.cal-data').forEach(function(span){
+      var col=span.closest('[data-testid=column]');
+      if(!col)return;
+      var btn=col.querySelector('[data-testid=stPopover]>button');
+      if(!btn)return;
+      if(btn.querySelector('.card-inner'))return;
+      var bg=span.dataset.bg,bor=span.dataset.bor,txt=span.dataset.txt,pnlC=span.dataset.pnlc;
+      btn.style.setProperty('background-color',bg,'important');
+      btn.style.setProperty('border-color',bor,'important');
+      var inner=document.createElement('div');
+      inner.className='card-inner';
+      inner.style.cssText='display:flex!important;visibility:visible!important;flex-direction:column;justify-content:space-between;height:100%;width:100%;font-size:1rem;text-indent:0;position:absolute;top:0;left:0;padding:6px 8px;box-sizing:border-box;pointer-events:none;';
+      if(span.classList.contains('cal-weekly')){
+        var wpnl=span.dataset.wpnl,wrr=span.dataset.wrr;
+        inner.innerHTML='<div style=\"'+LABEL_STYLE+'color:'+txt+'\">WEEKLY PNL</div><div style=\"'+VAL_STYLE+'color:'+pnlC+';text-align:center\">'+wpnl+' $<br><span style=\"font-size:0.85em;color:'+txt+';font-weight:normal\">RR: '+wrr+'</span></div>';
+      } else {
+        var dayN=span.dataset.day||'';
+        var cnt=parseInt(span.dataset.cnt||'0');
+        var state=span.dataset.state||'empty';
+        var pnl=parseFloat(span.dataset.pnl||'0');
+        var rr=parseFloat(span.dataset.rr||'0');
+        var badgeHtml='';
+        if(cnt>0){
+          var bBg='#1d1e30',bTxt='#a78bfa';
+          badgeHtml='<span style=\"font-size:0.75em;color:'+bTxt+';background:'+bBg+';padding:1px 4px;border-radius:4px;\">'+cnt+'x</span>';
         }
-        ec=ec.parentElement;
+        var pnlHtml='';
+        if(state==='notrade'){
+          pnlHtml='<span style=\"color:'+pnlC+'\">&#x26AA; No Trade</span>';
+        } else if(state==='win'){
+          pnlHtml='<span style=\"color:'+pnlC+'\">&#x1F7E2; +'+pnl.toFixed(1)+' $</span><br><span style=\"font-size:0.85em;color:'+txt+';font-weight:normal\">RR: '+rr.toFixed(2)+'</span>';
+        } else if(state==='loss'){
+          pnlHtml='<span style=\"color:'+pnlC+'\">&#x1F534; '+pnl.toFixed(1)+' $</span><br><span style=\"font-size:0.85em;color:'+txt+';font-weight:normal\">RR: '+rr.toFixed(2)+'</span>';
+        } else if(state==='zero'){
+          pnlHtml='<span style=\"color:'+pnlC+'\">&#x26AA; '+pnl.toFixed(1)+' $</span><br><span style=\"font-size:0.85em;color:'+txt+';font-weight:normal\">RR: '+rr.toFixed(2)+'</span>';
+        }
+        inner.innerHTML='<div style=\"display:flex;justify-content:space-between;align-items:flex-start\"><div style=\"font-weight:700;font-size:0.95em;color:'+txt+'\">'+dayN+'</div><div>'+badgeHtml+'</div></div><div style=\"font-weight:700;font-size:0.85em;color:'+pnlC+';text-align:center;line-height:1.1\">'+pnlHtml+'</div>';
       }
-      var btn=p.querySelector('button');
-      if(btn){
-        Object.assign(btn.style,{height:'80px',width:'100%',background:'transparent',border:'none',outline:'none',padding:'0',margin:'0',boxShadow:'none',borderRadius:'10px',cursor:'pointer',display:'block'});
-        Array.from(btn.children).forEach(function(c){c.style.display='none';});
-        btn.onmouseenter=function(){this.style.background='rgba(124,91,246,0.1)';this.style.border='1px solid #7c5bf6';};
-        btn.onmouseleave=function(){this.style.background='transparent';this.style.border='none';};
-      }
+      btn.appendChild(inner);
     });
   }
-  new MutationObserver(function(){fix();}).observe(document.body,{childList:true,subtree:true});
-  [0,200,600,1500,3000].forEach(function(t){setTimeout(fix,t);});
+  new MutationObserver(function(){buildCards();}).observe(document.body,{childList:true,subtree:true});
+  [0,100,300,700,1500].forEach(function(t){setTimeout(buildCards,t);});
 })();
 " style="display:none">
-""".replace('{ACC}', '#7c5bf6'), unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- GOOGLE SHEETS CONNECTION ---
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -703,12 +719,10 @@ if menu == "📊 Dashboard":
                             "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
                             "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239")
 
-                    card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
-                    cols[i].markdown(card_html, unsafe_allow_html=True)
-
+                    cols[i].markdown(f'<span class="cal-data cal-weekly" data-bg="{bg_c}" data-bor="{bor_c}" data-txt="{txt_c}" data-pnlc="{pnl_c}" data-wpnl="{weekly_pnl:+.1f}" data-wrr="{weekly_rr:.2f}"></span>', unsafe_allow_html=True)
                     curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                         week_end_date if ref_day else None)
-                    with cols[i].popover(label=" ", use_container_width=True):
+                    with cols[i].popover(label="​", use_container_width=True):
                         if curr_date_sunday:
                             st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
                             st.button(f"🔎 Go to History ({curr_date_sunday})", key=f"gth_sun_{i}_{day}_{view_month}",
@@ -758,10 +772,10 @@ if menu == "📊 Dashboard":
                             else:
                                 bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
-                        cols[i].markdown(card_html, unsafe_allow_html=True)
+                        day_state = "notrade" if (has_no_trade and day_pnl == 0) else ("win" if day_pnl > 0 else ("loss" if day_pnl < 0 else ("zero" if day_trades else "empty")))
+                        cols[i].markdown(f'<span class="cal-data" data-bg="{bg_c}" data-bor="{bor_c}" data-txt="{txt_c}" data-pnlc="{pnl_c}" data-day="{day}" data-pnl="{day_pnl}" data-rr="{day_rr}" data-cnt="{valid_trades_count}" data-state="{day_state}"></span>', unsafe_allow_html=True)
 
-                        with cols[i].popover(label=" ", use_container_width=True):
+                        with cols[i].popover(label="​", use_container_width=True):
                             if day_trades:
                                 st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
                                 st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
@@ -969,12 +983,10 @@ elif menu == "⏪ Backtesting":
                                 "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
                                 "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239")
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
-                        cols[i].markdown(card_html, unsafe_allow_html=True)
-
+                        cols[i].markdown(f'<span class="cal-data cal-weekly" data-bg="{bg_c}" data-bor="{bor_c}" data-txt="{txt_c}" data-pnlc="{pnl_c}" data-wpnl="{weekly_pnl:+.1f}" data-wrr="{weekly_rr:.2f}"></span>', unsafe_allow_html=True)
                         curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                             week_end_date if ref_day else None)
-                        with cols[i].popover(label=" ", use_container_width=True):
+                        with cols[i].popover(label="​", use_container_width=True):
                             if curr_date_sunday:
                                 st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
                                 st.button(f"🔎 Go to History ({curr_date_sunday})",
@@ -1024,10 +1036,10 @@ elif menu == "⏪ Backtesting":
                                 else:
                                     bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
-                            cols[i].markdown(card_html, unsafe_allow_html=True)
+                            day_state = "notrade" if (has_no_trade and day_pnl == 0) else ("win" if day_pnl > 0 else ("loss" if day_pnl < 0 else ("zero" if day_trades else "empty")))
+                            cols[i].markdown(f'<span class="cal-data" data-bg="{bg_c}" data-bor="{bor_c}" data-txt="{txt_c}" data-pnlc="{pnl_c}" data-day="{day}" data-pnl="{day_pnl}" data-rr="{day_rr}" data-cnt="{valid_trades_count}" data-state="{day_state}"></span>', unsafe_allow_html=True)
 
-                            with cols[i].popover(label=" ", use_container_width=True):
+                            with cols[i].popover(label="​", use_container_width=True):
                                 if day_trades:
                                     st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
                                     st.button(f"🔎 Go to History ({curr_date})", key=f"gth_bt_{curr_date}",
@@ -1271,12 +1283,10 @@ elif menu == "🗓️ Yearly Calendar":
                                 "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
                                 "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239")
 
-                        card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c}; justify-content: center; align-items: center;"><div class="weekly-summary-title" style="color: {txt_c};">Weekly PnL</div><div class="weekly-summary-value" style="color: {pnl_c}; text-align: center;">{weekly_pnl:+.1f} $<br><span style="font-size: 0.85em; color: {txt_c}; font-weight: normal;">RR: {weekly_rr:.2f}</span></div></div>"""
-                        cols[i].markdown(card_html, unsafe_allow_html=True)
-
+                        cols[i].markdown(f'<span class="cal-data cal-weekly" data-bg="{bg_c}" data-bor="{bor_c}" data-txt="{txt_c}" data-pnlc="{pnl_c}" data-wpnl="{weekly_pnl:+.1f}" data-wrr="{weekly_rr:.2f}"></span>', unsafe_allow_html=True)
                         curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                             week_end_date if ref_day else None)
-                        with cols[i].popover(label=" ", use_container_width=True):
+                        with cols[i].popover(label="​", use_container_width=True):
                             if curr_date_sunday:
                                 st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
                                 st.button(f"🔎 Go to History ({curr_date_sunday})",
@@ -1327,10 +1337,10 @@ elif menu == "🗓️ Yearly Calendar":
                                 else:
                                     bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
-                            card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
-                            cols[i].markdown(card_html, unsafe_allow_html=True)
+                            day_state = "notrade" if (has_no_trade and day_pnl == 0) else ("win" if day_pnl > 0 else ("loss" if day_pnl < 0 else ("zero" if day_trades else "empty")))
+                            cols[i].markdown(f'<span class="cal-data" data-bg="{bg_c}" data-bor="{bor_c}" data-txt="{txt_c}" data-pnlc="{pnl_c}" data-day="{day}" data-pnl="{day_pnl}" data-rr="{day_rr}" data-cnt="{valid_trades_count}" data-state="{day_state}"></span>', unsafe_allow_html=True)
 
-                            with cols[i].popover(label=" ", use_container_width=True):
+                            with cols[i].popover(label="​", use_container_width=True):
                                 if day_trades:
                                     st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
                                     st.button(f"🔎 Go to History ({curr_date})",
