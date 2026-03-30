@@ -220,42 +220,57 @@ st.markdown(f"""
     }}
 
     /* === CALENDAR CELLS === */
-    /* Kolumna z kafelkiem: position relative, żeby absolutnie pozycjonować popover */
-    div[data-testid="column"]:has(.day-card) {{
-        position: relative !important;
+    /* Karta dnia - dolne narożniki spłaszczone żeby złączyć z przyciskiem */
+    .day-card {{
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        border-bottom: none !important;
     }}
 
-    /* Wrapper element-container popovera - absolutnie przyklejony do karty */
-    div[data-testid="column"]:has(.day-card) div.element-container:has(div[data-testid="stPopover"]) {{
-        position: absolute !important;
-        top: 3px !important; left: 3px !important; right: 3px !important;
-        height: 80px !important;
-        z-index: 20 !important;
+    /* Przycisk popovera - pasek pod kartą, ten sam kolor */
+    div[data-testid="stPopover"] > button {{
+        height: 22px !important;
+        width: 100% !important;
+        background-color: {current_theme['bg_card']} !important;
+        border: 1px solid {current_theme['border']} !important;
+        border-top: none !important;
+        border-radius: 0 0 10px 10px !important;
+        font-size: 0px !important;
+        color: transparent !important;
+        padding: 0 !important;
         margin: 0 !important;
-        pointer-events: auto !important;
-    }}
-
-    /* Przycisk popovera - w pełni transparentna nakładka */
-    div[data-testid="column"]:has(.day-card) div[data-testid="stPopover"] > button {{
-        height: 80px !important; width: 100% !important;
-        background: transparent !important;
-        border: none !important; outline: none !important;
         box-shadow: none !important;
-        padding: 0 !important; margin: 0 !important;
-        border-radius: 10px !important;
-        transition: background-color 0.15s, border 0.15s !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: background-color 0.15s !important;
     }}
 
-    /* Ukrycie "expand_more" i całej zawartości buttona */
-    div[data-testid="column"]:has(.day-card) div[data-testid="stPopover"] > button * {{
+    /* Ukrycie całej zawartości (expand_more) */
+    div[data-testid="stPopover"] > button > * {{
         display: none !important;
-        visibility: hidden !important;
     }}
 
-    /* Hover */
-    div[data-testid="column"]:has(.day-card) div[data-testid="stPopover"] > button:hover {{
-        background-color: rgba(124, 91, 246, 0.08) !important;
-        border: 1px solid {current_theme['accent']} !important;
+    /* Mała kreska jako subtelny wskaźnik klikalności */
+    div[data-testid="stPopover"] > button::before {{
+        content: '— — —';
+        display: block !important;
+        font-size: 8px !important;
+        letter-spacing: 3px !important;
+        color: {current_theme['text_secondary']} !important;
+        opacity: 0.4;
+        visibility: visible !important;
+    }}
+
+    /* Hover na przycisku */
+    div[data-testid="stPopover"] > button:hover {{
+        background-color: {current_theme['accent']}12 !important;
+        border-color: {current_theme['accent']} !important;
+    }}
+    div[data-testid="stPopover"] > button:hover::before {{
+        color: {current_theme['accent']} !important;
+        opacity: 0.8;
     }}
 
     div[data-testid="column"] {{ padding: 3px !important; }}
