@@ -220,57 +220,36 @@ st.markdown(f"""
     }}
 
     /* === CALENDAR CELLS === */
-    /* Karta dnia - dolne narożniki spłaszczone żeby złączyć z przyciskiem */
-    .day-card {{
-        border-bottom-left-radius: 0 !important;
-        border-bottom-right-radius: 0 !important;
-        border-bottom: none !important;
+    /* Kolumna z kartą dnia - kontener dla nakładki */
+    div[data-testid="column"]:has(.day-card) {{
+        position: relative !important;
     }}
 
-    /* Przycisk nawigacji - pasek pod kartą */
+    /* Transparentna nakładka-przycisk pokrywająca całą kartę */
+    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] {{
+        position: absolute !important;
+        top: 0 !important; left: 0 !important;
+        right: 0 !important; bottom: 0 !important;
+        z-index: 10 !important;
+        margin: 0 !important; padding: 0 !important;
+    }}
     div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button {{
-        height: 22px !important;
+        height: 100% !important;
         width: 100% !important;
-        background-color: {current_theme['bg_card']} !important;
-        border: 1px solid {current_theme['border']} !important;
-        border-top: none !important;
-        border-radius: 0 0 10px 10px !important;
-        font-size: 0px !important;
-        color: transparent !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
         cursor: pointer !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: background-color 0.15s, border-color 0.15s !important;
+        padding: 0 !important; margin: 0 !important;
     }}
-
-    /* Ukrycie tekstu przycisku */
     div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button > * {{
         display: none !important;
     }}
 
-    /* Mała kreska jako subtelny wskaźnik klikalności */
-    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button::before {{
-        content: '— — —';
-        display: block !important;
-        font-size: 8px !important;
-        letter-spacing: 3px !important;
-        color: {current_theme['text_secondary']} !important;
-        opacity: 0.4;
-        visibility: visible !important;
-    }}
-
-    /* Hover na przycisku */
-    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button:hover {{
-        background-color: {current_theme['accent']}12 !important;
+    /* Hover - podświetlenie karty */
+    div[data-testid="column"]:has(.day-card):hover .day-card {{
         border-color: {current_theme['accent']} !important;
-    }}
-    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button:hover::before {{
-        color: {current_theme['accent']} !important;
-        opacity: 0.8;
+        box-shadow: 0 0 0 2px {current_theme['accent']}33, {current_theme['card_shadow']} !important;
     }}
 
     div[data-testid="column"] {{ padding: 3px !important; }}
@@ -497,6 +476,10 @@ def go_to_history_for_day(target_date):
     st.session_state.menu_nav = "📜 Trades History"
 
 
+def go_to_day_view(target_date):
+    st.session_state.day_view_date = target_date
+
+
 def back_to_dashboard():
     if 'history_filter_date' in st.session_state:
         del st.session_state.history_filter_date
@@ -606,6 +589,38 @@ for i, option in enumerate(menu_options):
 
 menu = st.session_state.menu_nav
 
+# --- DAY VIEW ---
+if st.session_state.get('day_view_date'):
+    dv_date = st.session_state.day_view_date
+    dv_trades = [t for t in all_trades if t['date'] == str(dv_date) and not t.get('is_backtest', False)]
+    dv_pnl = sum(t['pnl'] for t in dv_trades)
+    dv_rr = sum(t.get('rr', 0.0) for t in dv_trades)
+    dv_valid = [t for t in dv_trades if t.get('direction') != 'No Trade']
+
+    back_col, title_col = st.columns([1, 5])
+    back_col.button("← Wróć", key="dv_back", use_container_width=True,
+                    on_click=lambda: st.session_state.pop('day_view_date', None))
+    title_col.markdown(
+        f"<h3 style='margin-top:4px;font-size:1.1rem;font-weight:700;'>📅 {dv_date.strftime('%A, %d %B %Y')}</h3>",
+        unsafe_allow_html=True)
+
+    if dv_trades:
+        pnl_color = current_theme['accent'] if dv_pnl >= 0 else "#f43f5e"
+        pnl_sign = "+" if dv_pnl > 0 else ""
+        st.markdown(
+            f"<div style='display:flex;gap:24px;padding:10px 14px;background:{current_theme['bg_card']};border:1px solid {current_theme['border']};border-radius:10px;margin-bottom:16px;'>"
+            f"<span style='color:{current_theme['text_secondary']};font-size:0.85em;'>Trades: <b style='color:{current_theme['text_primary']};'>{len(dv_valid)}</b></span>"
+            f"<span style='color:{current_theme['text_secondary']};font-size:0.85em;'>Net P&L: <b style='color:{pnl_color};'>{pnl_sign}{dv_pnl:.1f} $</b></span>"
+            f"<span style='color:{current_theme['text_secondary']};font-size:0.85em;'>RR: <b style='color:{current_theme['text_primary']};'>{dv_rr:.2f}</b></span>"
+            f"</div>",
+            unsafe_allow_html=True)
+        for t in dv_trades:
+            render_trade_details(t)
+            st.divider()
+    else:
+        st.info("Brak wpisów na ten dzień.")
+    st.stop()
+
 # --- DASHBOARD ---
 if menu == "📊 Dashboard":
     c_t, c_f, c_y, c_m = st.columns([1.5, 2.5, 1, 1])
@@ -700,7 +715,7 @@ if menu == "📊 Dashboard":
                         week_end_date if ref_day else None)
                     if curr_date_sunday:
                         cols[i].button(" ", key=f"nav_sun_{i}_{day}_{view_month}", use_container_width=True,
-                                       on_click=go_to_history_for_day, args=(curr_date_sunday,))
+                                       on_click=go_to_day_view, args=(curr_date_sunday,))
                 else:
                     if day == 0:
                         cols[i].write("")
@@ -742,7 +757,7 @@ if menu == "📊 Dashboard":
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
                         cols[i].button(" ", key=f"nav_{curr_date}", use_container_width=True,
-                                       on_click=go_to_history_for_day, args=(curr_date,))
+                                       on_click=go_to_day_view, args=(curr_date,))
     else:
         st.info("Brak danych.")
 
@@ -947,7 +962,7 @@ elif menu == "⏪ Backtesting":
                             week_end_date if ref_day else None)
                         if curr_date_sunday:
                             cols[i].button(" ", key=f"nav_sun_bt_{i}_{day}_{view_month}", use_container_width=True,
-                                           on_click=go_to_history_for_day, args=(curr_date_sunday,))
+                                           on_click=go_to_day_view, args=(curr_date_sunday,))
                     else:
                         if day == 0:
                             cols[i].write("")
@@ -989,7 +1004,7 @@ elif menu == "⏪ Backtesting":
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             cols[i].button(" ", key=f"nav_bt_{curr_date}", use_container_width=True,
-                                           on_click=go_to_history_for_day, args=(curr_date,))
+                                           on_click=go_to_day_view, args=(curr_date,))
         else:
             st.info("Brak danych z Backtestingu.")
 
@@ -1229,7 +1244,7 @@ elif menu == "🗓️ Yearly Calendar":
                             week_end_date if ref_day else None)
                         if curr_date_sunday:
                             cols[i].button(" ", key=f"nav_sun_yc_{i}_{day}_{view_month}_{view_year}",
-                                           use_container_width=True, on_click=go_to_history_for_day,
+                                           use_container_width=True, on_click=go_to_day_view,
                                            args=(curr_date_sunday,))
                     else:
                         if day == 0:
@@ -1272,7 +1287,7 @@ elif menu == "🗓️ Yearly Calendar":
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             cols[i].button(" ", key=f"nav_yc_{curr_date}_{view_month}_{view_year}",
-                                           use_container_width=True, on_click=go_to_history_for_day,
+                                           use_container_width=True, on_click=go_to_day_view,
                                            args=(curr_date,))
             st.markdown("<hr style='margin: 30px 0; border-color: " + current_theme['border'] + ";'>",
                         unsafe_allow_html=True)
