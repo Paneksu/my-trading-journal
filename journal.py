@@ -725,6 +725,16 @@ if menu == "📊 Dashboard":
                                     "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
                                     "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
                                     "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
+                            elif day_rr > 0:
+                                bg_c, bor_c, pnl_c, pnl_disp = (
+                                    "rgba(31, 214, 165, 0.12)" if st.session_state.theme == "Dark" else "#dcfce7"), (
+                                    "#1fd6a5" if st.session_state.theme == "Dark" else "#059669"), (
+                                    "#1fd6a5" if st.session_state.theme == "Dark" else "#065f46"), f"🟢 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: +{day_rr:.2f}</span>"
+                            elif day_rr < 0:
+                                bg_c, bor_c, pnl_c, pnl_disp = (
+                                    "rgba(244, 63, 94, 0.12)" if st.session_state.theme == "Dark" else "#fee2e2"), (
+                                    "#f43f5e" if st.session_state.theme == "Dark" else "#e11d48"), (
+                                    "#f43f5e" if st.session_state.theme == "Dark" else "#9f1239"), f"🔴 {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
                             else:
                                 bg_c, bor_c, pnl_c, pnl_disp = "rgba(142, 142, 147, 0.15)", "#8e8e93", "#8e8e93", f"⚪ {day_pnl:.1f} $<br><span style='font-size:0.85em;color:{txt_c};font-weight:normal;'>RR: {day_rr:.2f}</span>"
 
