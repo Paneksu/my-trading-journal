@@ -220,36 +220,21 @@ st.markdown(f"""
     }}
 
     /* === CALENDAR CELLS === */
-    /* Kolumna z kartą dnia - kontener dla nakładki */
-    div[data-testid="column"]:has(.day-card) {{
-        position: relative !important;
-    }}
-
-    /* Transparentna nakładka-przycisk pokrywająca całą kartę */
+    /* Ukryj przycisk Streamlit - kliknięcie proxy-owane przez JS z .day-card */
     div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] {{
-        position: absolute !important;
-        top: 0 !important; left: 0 !important;
-        right: 0 !important; bottom: 0 !important;
-        z-index: 10 !important;
-        margin: 0 !important; padding: 0 !important;
-    }}
-    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button {{
-        height: 100% !important;
-        width: 100% !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        cursor: pointer !important;
-        padding: 0 !important; margin: 0 !important;
-    }}
-    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button > * {{
-        display: none !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }}
 
-    /* Hover - podświetlenie karty */
+    /* Karta dnia - kursor i hover */
+    div[data-testid="column"]:has(.day-card) .day-card {{
+        cursor: pointer !important;
+    }}
     div[data-testid="column"]:has(.day-card):hover .day-card {{
         border-color: {current_theme['accent']} !important;
-        box-shadow: 0 0 0 2px {current_theme['accent']}33, {current_theme['card_shadow']} !important;
+        box-shadow: 0 0 0 2px {current_theme['accent']}33 !important;
     }}
 
     div[data-testid="column"] {{ padding: 3px !important; }}
@@ -304,38 +289,26 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CALENDAR FIX via JS (img onerror = guaranteed DOM access) ---
+# --- CALENDAR CLICK via JS (img onerror = guaranteed DOM access) ---
 st.markdown("""
 <img src="x" onerror="
 (function(){
-  var accent='{ACC}';
-  function fix(){
-    document.querySelectorAll('[data-testid=stPopover]').forEach(function(p){
-      var col=p.closest('[data-testid=column]');
-      if(!col||!col.querySelector('.day-card'))return;
-      col.style.setProperty('position','relative','important');
-      // find wrapper element (parent of stPopover)
-      var ec=p.parentElement;
-      while(ec&&ec!==col){
-        if(ec.children.length===1&&ec.firstElementChild===p){
-          Object.assign(ec.style,{position:'absolute',top:'3px',left:'3px',right:'3px',height:'80px',zIndex:'20',margin:'0',padding:'0'});
-        }
-        ec=ec.parentElement;
-      }
-      var btn=p.querySelector('button');
-      if(btn){
-        Object.assign(btn.style,{height:'80px',width:'100%',background:'transparent',border:'none',outline:'none',padding:'0',margin:'0',boxShadow:'none',borderRadius:'10px',cursor:'pointer',display:'block'});
-        Array.from(btn.children).forEach(function(c){c.style.display='none';});
-        btn.onmouseenter=function(){this.style.background='rgba(124,91,246,0.1)';this.style.border='1px solid #7c5bf6';};
-        btn.onmouseleave=function(){this.style.background='transparent';this.style.border='none';};
-      }
+  function bindCards(){
+    document.querySelectorAll('.day-card:not([data-nav])').forEach(function(card){
+      card.setAttribute('data-nav','1');
+      card.addEventListener('click',function(){
+        var col=this.closest('[data-testid=column]');
+        if(!col) return;
+        var btn=col.querySelector('[data-testid=stButton] button');
+        if(btn) btn.click();
+      });
     });
   }
-  new MutationObserver(function(){fix();}).observe(document.body,{childList:true,subtree:true});
-  [0,200,600,1500,3000].forEach(function(t){setTimeout(fix,t);});
+  new MutationObserver(function(){bindCards();}).observe(document.body,{childList:true,subtree:true});
+  [0,100,300,700,1500].forEach(function(t){setTimeout(bindCards,t);});
 })();
 " style="display:none">
-""".replace('{ACC}', '#7c5bf6'), unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- GOOGLE SHEETS CONNECTION ---
 conn = st.connection("gsheets", type=GSheetsConnection)
