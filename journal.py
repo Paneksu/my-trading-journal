@@ -1247,7 +1247,7 @@ elif menu == "🗓️ Yearly Calendar":
                         if curr_date_sunday:
                             cols[i].button(" ", key=f"nav_sun_yc_{i}_{day}_{view_month}_{view_year}",
                                            use_container_width=True, on_click=go_to_day_view,
-                                           args=(curr_date_sunday,))
+                                           args=(curr_date_sunday, is_bt))
                     else:
                         if day == 0:
                             cols[i].write("")
@@ -1290,7 +1290,7 @@ elif menu == "🗓️ Yearly Calendar":
 
                             cols[i].button(" ", key=f"nav_yc_{curr_date}_{view_month}_{view_year}",
                                            use_container_width=True, on_click=go_to_day_view,
-                                           args=(curr_date,))
+                                           args=(curr_date, is_bt))
             st.markdown("<hr style='margin: 30px 0; border-color: " + current_theme['border'] + ";'>",
                         unsafe_allow_html=True)
     else:
