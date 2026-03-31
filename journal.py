@@ -227,8 +227,8 @@ st.markdown(f"""
         border-bottom: none !important;
     }}
 
-    /* Przycisk popovera - pasek pod kartą, ten sam kolor */
-    div[data-testid="stPopover"] > button {{
+    /* Przycisk nawigacji - pasek pod kartą */
+    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button {{
         height: 22px !important;
         width: 100% !important;
         background-color: {current_theme['bg_card']} !important;
@@ -244,16 +244,16 @@ st.markdown(f"""
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        transition: background-color 0.15s !important;
+        transition: background-color 0.15s, border-color 0.15s !important;
     }}
 
-    /* Ukrycie całej zawartości (expand_more) */
-    div[data-testid="stPopover"] > button > * {{
+    /* Ukrycie tekstu przycisku */
+    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button > * {{
         display: none !important;
     }}
 
     /* Mała kreska jako subtelny wskaźnik klikalności */
-    div[data-testid="stPopover"] > button::before {{
+    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button::before {{
         content: '— — —';
         display: block !important;
         font-size: 8px !important;
@@ -264,26 +264,16 @@ st.markdown(f"""
     }}
 
     /* Hover na przycisku */
-    div[data-testid="stPopover"] > button:hover {{
+    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button:hover {{
         background-color: {current_theme['accent']}12 !important;
         border-color: {current_theme['accent']} !important;
     }}
-    div[data-testid="stPopover"] > button:hover::before {{
+    div[data-testid="column"]:has(.day-card) div[data-testid="stButton"] button:hover::before {{
         color: {current_theme['accent']} !important;
         opacity: 0.8;
     }}
 
     div[data-testid="column"] {{ padding: 3px !important; }}
-
-    /* Popover body */
-    div[data-testid="stPopoverBody"] {{
-        border: 1px solid {current_theme['border']} !important;
-        background-color: {current_theme['popover_bg']} !important;
-        color: {current_theme['text_primary']} !important;
-        min-width: 1200px !important; max-width: 95vw !important;
-        border-radius: 16px !important;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.5) !important;
-    }}
 
     /* Highlight box */
     .highlight-box {{
@@ -708,19 +698,9 @@ if menu == "📊 Dashboard":
 
                     curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                         week_end_date if ref_day else None)
-                    with cols[i].popover(label=" ", use_container_width=True):
-                        if curr_date_sunday:
-                            st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
-                            st.button(f"🔎 Go to History ({curr_date_sunday})", key=f"gth_sun_{i}_{day}_{view_month}",
-                                      use_container_width=True, on_click=go_to_history_for_day,
-                                      args=(curr_date_sunday,))
-                            st.divider()
-                            sunday_trades = [t for t in filtered_trades if t['date'] == str(curr_date_sunday)]
-                            if sunday_trades:
-                                for t in sunday_trades: render_trade_details(t)
-                            else:
-                                st.write("Brak tradów.")
-                                st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
+                    if curr_date_sunday:
+                        cols[i].button(" ", key=f"nav_sun_{i}_{day}_{view_month}", use_container_width=True,
+                                       on_click=go_to_history_for_day, args=(curr_date_sunday,))
                 else:
                     if day == 0:
                         cols[i].write("")
@@ -761,17 +741,8 @@ if menu == "📊 Dashboard":
                         card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
                         cols[i].markdown(card_html, unsafe_allow_html=True)
 
-                        with cols[i].popover(label=" ", use_container_width=True):
-                            if day_trades:
-                                st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                                st.button(f"🔎 Go to History ({curr_date})", key=f"gth_{curr_date}",
-                                          use_container_width=True, on_click=go_to_history_for_day, args=(curr_date,))
-                                st.markdown(
-                                    f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                                st.divider()
-                                for t in day_trades: render_trade_details(t)
-                            else:
-                                st.write("Brak wpisów.")
+                        cols[i].button(" ", key=f"nav_{curr_date}", use_container_width=True,
+                                       on_click=go_to_history_for_day, args=(curr_date,))
     else:
         st.info("Brak danych.")
 
@@ -974,19 +945,9 @@ elif menu == "⏪ Backtesting":
 
                         curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                             week_end_date if ref_day else None)
-                        with cols[i].popover(label=" ", use_container_width=True):
-                            if curr_date_sunday:
-                                st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
-                                st.button(f"🔎 Go to History ({curr_date_sunday})",
-                                          key=f"gth_sun_bt_{i}_{day}_{view_month}", use_container_width=True,
-                                          on_click=go_to_history_for_day, args=(curr_date_sunday,))
-                                st.divider()
-                                sunday_trades = [t for t in bt_trades if t['date'] == str(curr_date_sunday)]
-                                if sunday_trades:
-                                    for t in sunday_trades: render_trade_details(t)
-                                else:
-                                    st.write("Brak tradów.")
-                                    st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
+                        if curr_date_sunday:
+                            cols[i].button(" ", key=f"nav_sun_bt_{i}_{day}_{view_month}", use_container_width=True,
+                                           on_click=go_to_history_for_day, args=(curr_date_sunday,))
                     else:
                         if day == 0:
                             cols[i].write("")
@@ -1027,18 +988,8 @@ elif menu == "⏪ Backtesting":
                             card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
-                            with cols[i].popover(label=" ", use_container_width=True):
-                                if day_trades:
-                                    st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                                    st.button(f"🔎 Go to History ({curr_date})", key=f"gth_bt_{curr_date}",
-                                              use_container_width=True, on_click=go_to_history_for_day,
-                                              args=(curr_date,))
-                                    st.markdown(
-                                        f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                                    st.divider()
-                                    for t in day_trades: render_trade_details(t)
-                                else:
-                                    st.write("Brak wpisów.")
+                            cols[i].button(" ", key=f"nav_bt_{curr_date}", use_container_width=True,
+                                           on_click=go_to_history_for_day, args=(curr_date,))
         else:
             st.info("Brak danych z Backtestingu.")
 
@@ -1276,20 +1227,10 @@ elif menu == "🗓️ Yearly Calendar":
 
                         curr_date_sunday = date(view_year, view_month, day) if day != 0 else (
                             week_end_date if ref_day else None)
-                        with cols[i].popover(label=" ", use_container_width=True):
-                            if curr_date_sunday:
-                                st.header(f"📅 {curr_date_sunday.strftime('%A, %d %B %Y')}")
-                                st.button(f"🔎 Go to History ({curr_date_sunday})",
-                                          key=f"gth_sun_yc_{i}_{day}_{view_month}_{view_year}",
-                                          use_container_width=True, on_click=go_to_history_for_day,
-                                          args=(curr_date_sunday,))
-                                st.divider()
-                                sunday_trades = [t for t in filtered_trades if t['date'] == str(curr_date_sunday)]
-                                if sunday_trades:
-                                    for t in sunday_trades: render_trade_details(t)
-                                else:
-                                    st.write("Brak tradów.")
-                                    st.info(f"**Weekly Total:** {weekly_pnl:+.1f} $ | RR: {weekly_rr:.2f}")
+                        if curr_date_sunday:
+                            cols[i].button(" ", key=f"nav_sun_yc_{i}_{day}_{view_month}_{view_year}",
+                                           use_container_width=True, on_click=go_to_history_for_day,
+                                           args=(curr_date_sunday,))
                     else:
                         if day == 0:
                             cols[i].write("")
@@ -1330,19 +1271,9 @@ elif menu == "🗓️ Yearly Calendar":
                             card_html = f"""<div class="day-card" style="background-color: {bg_c}; border-color: {bor_c};"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:bold;font-size:0.95em;color:{txt_c};">{day}</div><div>{badge}</div></div><div style="font-weight:bold;font-size:0.85em;color:{pnl_c};text-align:center;line-height:1.1;margin-top:-5px;">{pnl_disp}</div></div>"""
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
-                            with cols[i].popover(label=" ", use_container_width=True):
-                                if day_trades:
-                                    st.header(f"📅 {curr_date.strftime('%A, %d %B %Y')}")
-                                    st.button(f"🔎 Go to History ({curr_date})",
-                                              key=f"gth_yc_{curr_date}_{view_month}_{view_year}",
-                                              use_container_width=True, on_click=go_to_history_for_day,
-                                              args=(curr_date,))
-                                    st.markdown(
-                                        f"**Daily Net PnL:** :{'green' if day_pnl > 0 else 'red'}[{day_pnl:+.1f} $] | **RR:** {day_rr:.2f}")
-                                    st.divider()
-                                    for t in day_trades: render_trade_details(t)
-                                else:
-                                    st.write("Brak wpisów.")
+                            cols[i].button(" ", key=f"nav_yc_{curr_date}_{view_month}_{view_year}",
+                                           use_container_width=True, on_click=go_to_history_for_day,
+                                           args=(curr_date,))
             st.markdown("<hr style='margin: 30px 0; border-color: " + current_theme['border'] + ";'>",
                         unsafe_allow_html=True)
     else:
