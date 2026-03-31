@@ -476,8 +476,9 @@ def go_to_history_for_day(target_date):
     st.session_state.menu_nav = "📜 Trades History"
 
 
-def go_to_day_view(target_date):
+def go_to_day_view(target_date, is_backtest=False):
     st.session_state.day_view_date = target_date
+    st.session_state.day_view_is_backtest = is_backtest
 
 
 def back_to_dashboard():
@@ -592,7 +593,8 @@ menu = st.session_state.menu_nav
 # --- DAY VIEW ---
 if st.session_state.get('day_view_date'):
     dv_date = st.session_state.day_view_date
-    dv_trades = [t for t in all_trades if t['date'] == str(dv_date) and not t.get('is_backtest', False)]
+    dv_is_bt = st.session_state.get('day_view_is_backtest', False)
+    dv_trades = [t for t in all_trades if t['date'] == str(dv_date) and t.get('is_backtest', False) == dv_is_bt]
     dv_pnl = sum(t['pnl'] for t in dv_trades)
     dv_rr = sum(t.get('rr', 0.0) for t in dv_trades)
     dv_valid = [t for t in dv_trades if t.get('direction') != 'No Trade']
@@ -962,7 +964,7 @@ elif menu == "⏪ Backtesting":
                             week_end_date if ref_day else None)
                         if curr_date_sunday:
                             cols[i].button(" ", key=f"nav_sun_bt_{i}_{day}_{view_month}", use_container_width=True,
-                                           on_click=go_to_day_view, args=(curr_date_sunday,))
+                                           on_click=go_to_day_view, args=(curr_date_sunday, True))
                     else:
                         if day == 0:
                             cols[i].write("")
@@ -1004,7 +1006,7 @@ elif menu == "⏪ Backtesting":
                             cols[i].markdown(card_html, unsafe_allow_html=True)
 
                             cols[i].button(" ", key=f"nav_bt_{curr_date}", use_container_width=True,
-                                           on_click=go_to_day_view, args=(curr_date,))
+                                           on_click=go_to_day_view, args=(curr_date, True))
         else:
             st.info("Brak danych z Backtestingu.")
 
